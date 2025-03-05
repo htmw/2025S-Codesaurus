@@ -5,7 +5,7 @@ function Footer() {
     return (
         <footer>
             <Container className='Footer' fluid>
-                <i>QuestAI | Designed and Built by Codesaurus</i>
+                <i>QuestAI | Designed & Built by Codesaurus</i>
 
             </Container>
         </footer >

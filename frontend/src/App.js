@@ -5,9 +5,6 @@ import Footer from './components/Footer/Footer';
 import HomePage from "./components/HomePage/HomePage";
 import ThemePage from "./components/ThemePage/ThemePage";
 import StoryPage from "./components/StoryPage/StoryPage";
-
-
-
 import './App.css';
 
 function App() {
@@ -19,12 +16,12 @@ function App() {
         {/* Home Screen */}
         <Container className="home-screen" fluid>
           <Routes>
-            Default Route
+            {/* Default Route */}
 
             <Route path="/" element={ <HomePage /> }/>
             
-            <Route path="/theme-selection" element={<ThemePage />} />
-            <Route path="/storie-selection" element={<StoryPage />} />
+            <Route path="/themes" element={<ThemePage />} />
+            <Route path="/stories" element={<StoryPage />} />
 
           </Routes>
         </Container>

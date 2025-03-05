@@ -7,7 +7,7 @@ function HomePage() {
     const navigate = useNavigate();
 
     const handleContinue = () => {
-        navigate("/theme-selection");
+        navigate("/themes");
       };
 
     return (
@@ -21,9 +21,7 @@ function HomePage() {
             <p className="homepage-paragraph">
             <i>A journey into the unknown, the choice is up to you</i>
             </p>
-            <p>
-            click "Continue" to begin
-            </p>
+            <p className="homepage-paragraph p"> click <strong>"Continue"</strong> to begin </p>
             {/* Continue Button */}
             <Button
               className="continue-button"
