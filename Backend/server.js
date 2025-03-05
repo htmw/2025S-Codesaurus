@@ -5,6 +5,8 @@ const cors = require("cors");
 
 const logRoutes = require("./routes/logRoutes"); // Import routes
 const themeRoutes = require("./routes/themeRoutes"); // Theme routes
+const storyRoutes = require("./routes/storyRoutes"); // Story routes
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,6 +26,7 @@ app.get("/", (req, res) => {
 
 app.use("/api", logRoutes);
 app.use("/api", themeRoutes); //Theme
+app.use("/api", storyRoutes); //Story
 
 
 app.listen(PORT, () => console.log(`running on port ${PORT}`));
