@@ -4,7 +4,7 @@ const Theme = require("../models/Themes");
 
 // POST route to create a new story
 const saveStory = async (req, res) => {
-    const { title, description, themeId, prompt } = req.body;
+    const { title, description, themeId, prompt, narrator_tone, duration } = req.body;
     // Ensure the title is provided
     if (!title) {
         return res.status(400).json({ message: "title is required" });
@@ -28,6 +28,8 @@ const saveStory = async (req, res) => {
             description,
             themeId,
             prompt,
+            narrator_tone,
+            duration,
         });
 
         await newStory.save();  // Save the Story to the database
@@ -40,8 +42,8 @@ const saveStory = async (req, res) => {
 // GET route to fetch all stories
 const getAllStories = async (req, res) => {
     try {
-        const stories = await Story.find().sort({ timestamp: 1 }) // Retrieve all stories sorted by timestamp
-        .populate("themeId", "title");  // Populate themeId with the theme name and description; 
+        const stories = await Story.find().sort({ timestamp: -1 }) // Retrieve all stories sorted by timestamp
+        .populate("themeId", "title");  // Populate themeId with the themeId name and title; 
         
         if (stories.length === 0) {
             return res.status(404).json({ message: "No stories found" });

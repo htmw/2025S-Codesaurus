@@ -8,6 +8,8 @@ const storySchema = new mongoose.Schema({
     description: { type: String },  // Brief description displayed for the preset
     themeId: { type: mongoose.Schema.Types.ObjectId, ref: "Theme", required: true },  // References the theme
     prompt: { type: String, required: true },  // Starting prompt for the AI
+    narrator_tone: { type: String },  // Optional tone of the theme used for narration
+    duration: { type: Number, required: true, min: 5 }, // Approximate duration in minutes until the Story ends
     timestamp: { type: Date, default: Date.now } // Time - created_at
 });
 

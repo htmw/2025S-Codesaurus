@@ -9,8 +9,12 @@ const saveTheme = async (req, res) => {
     }
 
     try {
-        const newTheme = new Theme({ title, description });  // Create a new Theme instance
-        await newTheme.save();  // Save the theme to the database
+        const newTheme = new Theme({ 
+                title, 
+                description, 
+            });  // Create a new Theme instance
+        
+            await newTheme.save();  // Save the theme to the database
         res.status(201).json({ message: "Theme saved successfully", theme: newTheme });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err });
