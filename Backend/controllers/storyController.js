@@ -42,7 +42,7 @@ const saveStory = async (req, res) => {
 // GET route to fetch all stories
 const getAllStories = async (req, res) => {
     try {
-        const stories = await Story.find().sort({ timestamp: -1 }) // Retrieve all stories sorted by timestamp
+        const stories = await Story.find().sort({ timestamp: -1 }) // Retrieve all stories sorted by most recent timestamp
         .populate("themeId", "title");  // Populate themeId with the themeId name and title; 
         
         if (stories.length === 0) {
