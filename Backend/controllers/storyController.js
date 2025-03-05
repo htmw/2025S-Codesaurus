@@ -4,7 +4,6 @@ const Theme = require("../models/Themes");
 
 // POST route to create a new story
 const saveStory = async (req, res) => {
-    console.log(req.body);
     const { title, description, themeId, prompt } = req.body;
     // Ensure the title is provided
     if (!title) {
