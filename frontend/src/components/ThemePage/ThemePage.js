@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Button } from "react-bootstrap"; // Importing react-bootstrap components
-import "./ThemePage.css"; // Ensure this file exists
+import { Container, Row, Col, Button } from "react-bootstrap";
+import "./ThemePage.css"; 
 
 
 const ThemePage = () => {
@@ -40,7 +40,7 @@ const ThemePage = () => {
         <h1 className="theme-header">Choose Your Adventure</h1>
 
 
-        {/* Theme Options with responsive grid layout */}
+        {/* Theme Options with grid layout */}
       <Container fluid>
         <Row className="theme-container">
           {themes.map((theme) => (
