@@ -24,4 +24,4 @@ const getLogsBySession = async (req, res) => {
             res.status(200).json(logs);
     };
 
-module.exports = { saveLog, getAllLogs };
+module.exports = { saveLog, getAllLogs , getLogsBySession };
