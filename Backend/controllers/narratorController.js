@@ -2,7 +2,19 @@ require("dotenv").config();
 const { OpenAI } = require("openai");
 const GameSession = require("../models/GameSession");
 
+const similarity = require('similarity');
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Using diceCoefficient in an async context to ensure it's loaded
+
+const deathSynonyms = ["died", "was killed", "passed away", "lost his life", "lost her life",
+        "took his last breath", "took her last breath", "fatal", "death"];
+
+const Thanos = 'story leads into the beginning of the ice age';
+const Rival = 'And yet now we entered into the Ice Age';
+
+console.log(similarity(Thanos, Rival));
 
 // AI Narrator Function
 const generateNarration = async (playerInput, previousChoices, storyPrompt) => {
@@ -73,16 +85,41 @@ const playTurn = async (req, res) => {
 		let session = await GameSession.findOne({ playerId });
 
 		if (!session) return res.status(404).json({ message: "Game session not found. Start a new game first." });
+		//Get this goal from session
+		goal = "Reach the Promise Land."
 
 		// Generate AI response based on the player's input
 		const updatedStory = await generateNarration(playerChoice, session.choices, session.storyState);
+
+		let endStory = false;
+		for(let i=0;i<deathSynonyms.length;i++){
+
+			if(updatedStory.contains(deathSynonyms[i])){
+				//check with chat gpt if the protaganist died
+				let chatGPTresponse = "Yes"
+				if((chatGPTresponse.toLowerCase()).contains("yes")){
+					endStory = true;
+				}
+			}
+		}
+
+		if(!endStory){
+			sentences = updatedStory.split(".");
+			for(let i=0; i<sentences.length; i++){
+				if(similarity(sentences[i],goal)>0.2){
+					endStory = true;
+				}
+			}
+		}
+
+		const endStory = similarity(updatedStory,)
 
 		session.choices.push(playerChoice);
 		session.storyState = updatedStory;
 
 		await session.save();
 
-		res.json({ storyState: updatedStory, choices: session.choices });
+		res.json({ storyState: updatedStory, choices: session.choices, end: endStory});
 	} catch (err) {
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
