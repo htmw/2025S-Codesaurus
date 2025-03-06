@@ -16,4 +16,7 @@ router.post("/logs", saveLog);
 //Get Logs from mongodb
 router.get("/logs", getAllLogs);
 
+//get logs by sessionID
+router.get("/logs/:sessionId", getLogsBySession);
+
 module.exports = router;

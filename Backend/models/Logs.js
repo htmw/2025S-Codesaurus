@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 // Maybe use time to maintain order for LLM? Uses very little addtioinal tokens, not too much
 
 const logSchema = new mongoose.Schema({
+    sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "GameSession", required: true },
     context: { type: String, required: true },   // AI Context
     userInput: { type: String, required: true }, // User interaction
     timestamp: { type: Date, default: Date.now } // Time - maybe?
