@@ -18,5 +18,10 @@ const getAllLogs = async (req, res) => {
         res.status(200).json(logs);
 };
 
+const getLogsBySession = async (req, res) => {
+            const { sessionId } = req.params;
+            const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });  
+            res.status(200).json(logs);
+    };
 
 module.exports = { saveLog, getAllLogs };
