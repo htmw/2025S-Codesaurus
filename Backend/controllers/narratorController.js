@@ -5,21 +5,23 @@ const Log = require("../models/Logs");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// AI Narrator Function
+/**
+ * AI Narrator Function - Generates AI narration based on past choices
+ */
 const generateNarration = async (playerInput, sessionId, storyPrompt) => {
-	// Fetch previous choices from logs
-	const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
-	const previousChoices = logs.map(log => log.userInput);
-
-	const prompt = `
-        You are an AI Dungeon Master for a D&D game.
-        Story setup: "${storyPrompt}"
-        Player choices so far: [${previousChoices.join(", ")}]
-        The player now says: "${playerInput}".
-        Continue the story based on these choices.
-    `;
-
 	try {
+		// Fetch previous choices from logs
+		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
+		const previousChoices = logs.map(log => log.userInput);
+
+		const prompt = `
+            You are an AI Dungeon Master for a D&D game.
+            Story setup: "${storyPrompt}"
+            Player choices so far: [${previousChoices.join(", ")}]
+            The player now says: "${playerInput}".
+            Continue the story based on these choices.
+        `;
+
 		const response = await openai.chat.completions.create({
 			model: "gpt-4",
 			messages: [{ role: "system", content: "You are a fantasy narrator guiding players." }, { role: "user", content: prompt }],
@@ -33,15 +35,16 @@ const generateNarration = async (playerInput, sessionId, storyPrompt) => {
 	}
 };
 
-
-// Start a New Game
+/**
+ * Start a New Game Session
+ */
 const startGame = async (req, res) => {
-	const { playerId, storyId } = req.body;
-	if (!playerId || !storyId) return res.status(400).json({ message: "Missing player ID or story ID." });
+	const { storyId } = req.body;  // Frontend now only sends storyId
+	if (!storyId) return res.status(400).json({ message: "Missing story ID." });
 
 	try {
-		// Fetch story from MongoDB instead of using hardcoded data	
-		// TODO: take story from mongodb
+		// Fetch story from database
+		// const story = await Story.findById(storyId);
 		const story = {
 			storyId: "67c7de2165039bfe161f5e2c",
 			title: "Whispers in the Dark",
@@ -51,37 +54,34 @@ const startGame = async (req, res) => {
 		}
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
-		// Check if a session already exists
-		let session = await GameSession.findOne({ playerId });
+		// Create a new game session (MongoDB will generate the _id automatically)
+		const session = new GameSession({
+			storyId,
+			storyState: `The adventure begins...\n${story.prompt}`,
+		});
 
-		if (!session) {
-			session = new GameSession({
-				playerId,
-				storyId,
-				storyState: `The adventure begins...\n${story.prompt}`,
-			});
-
-			await session.save();
-		}
+		await session.save(); // MongoDB generates the _id when saving
 
 		res.json({
 			message: `Game started: ${story.title}`,
-			storyState: session.storyState
+			sessionId: session._id.toString(), // Send MongoDB-generated ID to frontend
+			storyState: session.storyState,
 		});
 	} catch (err) {
-		console.log('err: ', err);
+		console.error("Server Error:", err);
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
 };
 
-
-// Handle Player Choices and Generate AI Response
+/**
+ * Handle Player Turn & Generate AI Response
+ */
 const playTurn = async (req, res) => {
-	const { playerId, playerChoice } = req.body;
-	if (!playerId || !playerChoice) return res.status(400).json({ message: "Missing player ID or choice." });
+	const { sessionId, playerChoice } = req.body;
+	if (!sessionId || !playerChoice) return res.status(400).json({ message: "Missing session ID or player choice." });
 
 	try {
-		let session = await GameSession.findOne({ playerId });
+		let session = await GameSession.findById(sessionId);
 
 		if (!session) return res.status(404).json({ message: "Game session not found. Start a new game first." });
 
@@ -91,18 +91,19 @@ const playTurn = async (req, res) => {
 
 		// Save user input to Logs
 		await Log.create({
-			sessionId: session._id,
+			sessionId,
 			context: session.storyState,
 			userInput: playerChoice,
 		});
 
-		// Generate AI response using logs instead of session.choices
-		const updatedStory = await generateNarration(playerChoice, session._id, session.storyState);
+		// Generate AI response based on previous choices
+		const updatedStory = await generateNarration(playerChoice, sessionId, session.storyState);
 
 		session.storyState = updatedStory;
 
-		// Check for End Game Triggers
-		if (playerChoice.toLowerCase().includes("escape") || (await Log.countDocuments({ sessionId: session._id })) >= 10) {
+		// Check for End Game Triggers (e.g., max turns, specific keywords)
+		const logCount = await Log.countDocuments({ sessionId });
+		if (playerChoice.toLowerCase().includes("escape") || logCount >= 10) {
 			session.isCompleted = true;
 			session.endingState = `The journey ends here... ${updatedStory}`;
 		}
@@ -118,12 +119,15 @@ const playTurn = async (req, res) => {
 	}
 };
 
+/**
+ * End Game Manually
+ */
 const completeGame = async (req, res) => {
-	const { playerId } = req.body;
-	if (!playerId) return res.status(400).json({ message: "Missing player ID." });
+	const { sessionId } = req.body;
+	if (!sessionId) return res.status(400).json({ message: "Missing session ID." });
 
 	try {
-		let session = await GameSession.findOne({ playerId });
+		let session = await GameSession.findById(sessionId);
 
 		if (!session) return res.status(404).json({ message: "Game session not found." });
 
@@ -138,23 +142,24 @@ const completeGame = async (req, res) => {
 	}
 };
 
-
-// Get Current Game State
+/**
+ * Get Current Game State
+ */
 const getGameState = async (req, res) => {
-	const { playerId } = req.params;
+	const { sessionId } = req.params;
 
 	try {
-		const session = await GameSession.findOne({ playerId });
+		const session = await GameSession.findById(sessionId);
 
 		if (!session) return res.status(404).json({ message: "Game session not found." });
 
 		// Fetch player choices from logs
-		const logs = await Log.find({ sessionId: session._id }).sort({ timestamp: 1 });
+		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const choices = logs.map(log => log.userInput);
 
 		res.json({
 			storyState: session.storyState,
-			choices, // Choices now come from logs instead of session
+			choices,
 			isCompleted: session.isCompleted,
 		});
 	} catch (err) {
@@ -162,7 +167,9 @@ const getGameState = async (req, res) => {
 	}
 };
 
-
+/**
+ * Get All Choices for a Session
+ */
 const getChoicesForSession = async (req, res) => {
 	const { sessionId } = req.params;
 
