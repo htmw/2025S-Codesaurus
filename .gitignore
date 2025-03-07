@@ -33,3 +33,5 @@ yarn-error.log*
 *app.yaml
 Backend/uploads/*
 Backend/.env.production
+
+Backend/test_character_building.txt

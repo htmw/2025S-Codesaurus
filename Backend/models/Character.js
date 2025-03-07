@@ -16,4 +16,4 @@ const characterSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("Character", characterSchema);
+module.exports = mongoose.model("Character", characterSchema); // Stored in model name Character 
