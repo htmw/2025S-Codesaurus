@@ -37,4 +37,21 @@ const getCharacters = async (req, res) => {
     }
 };
 
-module.exports = { createCharacter, getCharacters };
+// 🔥 New function to get characters by name
+const getCharacterByName = async (req, res) => {
+    try {
+        const { name } = req.params;
+        const character = await Character.findOne({ name });
+
+        if (!character) {
+            return res.status(404).json({ message: "Character not found" });
+        }
+
+        res.status(200).json(character);
+    } catch (error) {
+        console.error("Error fetching character:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+module.exports = { createCharacter, getCharacters, getCharacterByName};
