@@ -9,4 +9,7 @@ router.post("/themes", saveTheme);
 // GET route to fetch all themes
 router.get("/themes", getAllThemes);
 
+// GET route to fetch all themes by their id
+router.get("/themes/themeId", getAllThemesbyId);
+
 module.exports = router;
