@@ -2,6 +2,7 @@ require("dotenv").config();
 const { OpenAI } = require("openai");
 const GameSession = require("../models/GameSession");
 const Log = require("../models/Logs");
+const Story = require('../models/Stories')
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -44,14 +45,8 @@ const startGame = async (req, res) => {
 
 	try {
 		// Fetch story from database
-		// const story = await Story.findById(storyId);
-		const story = {
-			storyId: "67c7de2165039bfe161f5e2c",
-			title: "Whispers in the Dark",
-			description: "You find yourself lost within the haunted, labyrinthine paths of the Dark Forest. As you seek a way out, eerie whispers and shadowy figures guide (or mislead) your steps. Every decision could either save or doom you to wander forever.",
-			themeId: "67c7cd9b4135be19acd72017",
-			prompt: "A voice whispers your name from the darkness ahead, but you can't tell if it's a spirit, a trap, or a guide. The path forks, one leading deeper into the forest and the other back toward the edge of the woods. What do you do?",
-		}
+		const story = await Story.findById(storyId);
+
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
 		// Create a new game session (MongoDB will generate the _id automatically)
