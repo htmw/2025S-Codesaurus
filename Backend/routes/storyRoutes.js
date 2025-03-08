@@ -10,6 +10,6 @@ router.post("/story", saveStory);
 router.get("/stories", getAllStories);
 
 //GET Stories from their Id
-router.get("/stories/storyId", getStoryById);
+router.get("/stories/:id", getStoryById);
 
 module.exports = router;

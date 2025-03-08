@@ -57,16 +57,19 @@ const getAllStories = async (req, res) => {
 
 // GET route to fetch all stories
 const getStoryById = async (req, res) => {
+    const { id } = req.params; // Extract story ID from URL parameters
+
     try {
-        const stories = await Story.find().sort({ timestamp: -1 }) 
-        .populate("themeId", "title");   
-        
-        if (stories.length === 0) {
-            return res.status(404).json({ message: "No stories found" });
+        // Find the story by its ID
+        const story = await Story.findById(id).populate("themeId", "title");
+
+        if (!story) {
+            return res.status(404).json({ message: "Story not found" });
         }
-        res.status(200).json(stories);  // Return all stories as JSON
+
+        res.status(200).json(story);  // Return the found story as JSON
     } catch (err) {
-        res.status(500).json({ message: "Server error", error: err });
+        res.status(500).json({ message: "Server error", error: err.message });
     }
 
 };

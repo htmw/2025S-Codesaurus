@@ -10,6 +10,6 @@ router.post("/themes", saveTheme);
 router.get("/themes", getAllThemes);
 
 // GET route to fetch all themes by their id
-router.get("/themes/themeId", getThemebyId);
+router.get("/themes/:id", getThemebyId);
 
 module.exports = router;
