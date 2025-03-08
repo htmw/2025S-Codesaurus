@@ -55,4 +55,21 @@ const getAllStories = async (req, res) => {
 
 };
 
-module.exports = { saveStory, getAllStories };
+// GET route to fetch all stories
+const getStoryById = async (req, res) => {
+    try {
+        const stories = await Story.find().sort({ timestamp: -1 }) 
+        .populate("themeId", "title");   
+        
+        if (stories.length === 0) {
+            return res.status(404).json({ message: "No stories found" });
+        }
+        res.status(200).json(stories);  // Return all stories as JSON
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err });
+    }
+
+};
+
+
+module.exports = { saveStory, getAllStories, getStoryById };

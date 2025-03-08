@@ -1,5 +1,5 @@
 const express = require("express");
-const { saveTheme, getAllThemes } = require("../controllers/themeController"); 
+const { saveTheme, getAllThemes, getThemebyId } = require("../controllers/themeController"); 
 
 const router = express.Router();
 
@@ -10,6 +10,6 @@ router.post("/themes", saveTheme);
 router.get("/themes", getAllThemes);
 
 // GET route to fetch all themes by their id
-router.get("/themes/themeId", getAllThemesbyId);
+router.get("/themes/themeId", getThemebyId);
 
 module.exports = router;

@@ -36,17 +36,17 @@ const getAllThemes = async (req, res) => {
 };
 
 // GET route to fetch all themes by themes ID
-const getAllThemesbyId = async (req, res) => {
+const getThemebyId = async (req, res) => {
     try {
-        const themes = await Theme.find().sort({ timestamp: 1 });  // Retrieve all themes sorted by timestamp
+        const themes = await Theme.find().sort({ timestamp: 1 });  
         if (themes.length === 0) {
             return res.status(404).json({ message: "No themes found" });
         }
-        res.status(200).json(themes);  // Return all themes as JSON
+        res.status(200).json(themes);  // Return the theme as JSON
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err });
     }
 
 };
 
-module.exports = { saveTheme, getAllThemes, getAllThemesbyId };
+module.exports = { saveTheme, getAllThemes, getThemebyId };
