@@ -6,6 +6,7 @@ import HomePage from "./components/HomePage/HomePage";
 import ThemePage from "./components/ThemePage/ThemePage";
 import StoryPage from "./components/StoryPage/StoryPage";
 import GameSession from "./components/GameSessionPage/GameSessionPage"
+import ChatWindow from './components/ChatWindow/chat-window';
 import './App.css';
 
 function App() {
@@ -19,11 +20,12 @@ function App() {
           <Routes>
             {/* Default Route */}
 
-            <Route path="/" element={ <HomePage /> }/>
-            
+            <Route path="/" element={<HomePage />} />
+
             <Route path="/themes" element={<ThemePage />} />
             <Route path="/stories" element={<StoryPage />} />
             <Route path="/gameSession" element={<GameSession />} />
+            <Route path="/chatwindow" element={<ChatWindow />} />
 
           </Routes>
         </Container>
