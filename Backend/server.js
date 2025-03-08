@@ -1,9 +1,10 @@
 const express = require("express");
 const mongoose = require("mongoose");
-require("dotenv").config(); 
+require("dotenv").config();
 const cors = require("cors");
 
 const logRoutes = require("./routes/logRoutes"); // Import routes
+const narratorRoutes = require("./routes/narratorRoutes");
 const themeRoutes = require("./routes/themeRoutes"); // Theme routes
 const storyRoutes = require("./routes/storyRoutes"); // Story routes
 
@@ -21,10 +22,11 @@ mongoose.connect(process.env.MONGO_URI, {
   .catch(err => console.error("connection error:", err));
 
 app.get("/", (req, res) => {
-    res.send("Server is running");
+  res.send("Server is running");
 });
 
 app.use("/api", logRoutes);
+app.use("/api", narratorRoutes);
 app.use("/api", themeRoutes); //Theme
 app.use("/api", storyRoutes); //Story
 
