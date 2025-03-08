@@ -5,6 +5,7 @@ import Footer from './components/Footer/Footer';
 import HomePage from "./components/HomePage/HomePage";
 import ThemePage from "./components/ThemePage/ThemePage";
 import StoryPage from "./components/StoryPage/StoryPage";
+import GameSession from "./components/GameSessionPage/GameSessionPage"
 import './App.css';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
             
             <Route path="/themes" element={<ThemePage />} />
             <Route path="/stories" element={<StoryPage />} />
+            <Route path="/gameSession" element={<GameSession />} />
 
           </Routes>
         </Container>

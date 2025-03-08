@@ -1,0 +1,18 @@
+/* Background image */
+/* Background image */
+.session-page {
+    position: relative;
+    height: 100vh;
+    background-color: #0A2D35;
+    /* background-size: cover;
+    background-position: center;
+    background-attachment: fixed; */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+.session{
+	color: #FFFFFF;
+}
