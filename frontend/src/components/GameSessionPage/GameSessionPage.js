@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Container, Form, InputGroup, Button } from "react-bootstrap";
 import { FaPaperPlane } from "react-icons/fa";
+import Typewriter from "../UIComponent/Typewriter";
+import { motion } from "framer-motion";
 import "./GameSessionPage.css";
 
 const API_BASE_URL = "http://localhost:8081/api";
@@ -127,11 +129,26 @@ function GameSessionPage() {
                 <h2 className="chat-header">Let's Play!</h2>
 
                 <div className="message-area">
-                    {messages.map((msg, index) => (
-                        <div key={index} className={`chat-message ${msg.sender}`}>
-                            {msg.sender === "narrator" ? msg.text : <em>"{msg.text}"</em>}
-                        </div>
-                    ))}
+                    {messages.map((msg, index) => {
+                        const isLastMessage = index === messages.length - 2;
+                        const isNarrator = msg.sender === "narrator";
+
+                        return (
+                            <motion.div
+                                key={index}
+                                className={`chat-message ${msg.sender}`}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                {isNarrator && isLastMessage ? (
+                                    <Typewriter text={msg.text} speed={15} delay={0} />
+                                ) : (
+                                    isNarrator ? msg.text : <em>"{msg.text}"</em>
+                                )}
+                            </motion.div>
+                        );
+                    })}
 
                     {isTyping && (
                         <div className="chat-message narrator typing-indicator">
