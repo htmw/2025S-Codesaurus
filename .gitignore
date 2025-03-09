@@ -35,3 +35,4 @@ Backend/uploads/*
 Backend/.env.production
 
 Backend/test_character_building.txt
+Backend/test_api.sh

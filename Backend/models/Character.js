@@ -13,7 +13,12 @@ const characterSchema = new mongoose.Schema({
         wisdom: { type: Number, required: true },
         charisma: { type: Number, required: true }
     },
+    gameSessionId: {  // ✅ Add this to allow linking to GameSession
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "GameSession",
+        required: false
+    },
     createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("Character", characterSchema); // Stored in model name Character 
+module.exports = mongoose.model("Character", characterSchema);

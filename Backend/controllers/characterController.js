@@ -1,35 +1,58 @@
+const mongoose = require("mongoose");
 const Character = require("../models/Character");
 
 const createCharacter = async (req, res) => {
     try {
-        const { name, race, class: characterClass, background, stats } = req.body;
+        const { name, race, class: characterClass, background, stats, gameSessionId } = req.body;
 
-        // Validate input
+        // Validate required fields
         if (!name || !race || !characterClass || !background || !stats) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        // Save new character
+        // Ensure gameSessionId is a valid ObjectId if provided
+        const sessionObjectId = (gameSessionId && mongoose.Types.ObjectId.isValid(gameSessionId))
+            ? new mongoose.Types.ObjectId(gameSessionId)
+            : null;
+
+        if (gameSessionId && !sessionObjectId) {
+            return res.status(400).json({ message: "Invalid gameSessionId format" });
+        }
+
+        // Create and save the character
         const newCharacter = new Character({ 
             name, 
             race, 
             class: characterClass, 
             background, 
-            stats 
+            stats,
+            gameSessionId: sessionObjectId
         });
 
         await newCharacter.save();
-
         res.status(201).json({ message: "Character created successfully", character: newCharacter });
+
     } catch (error) {
         console.error("Error creating character:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };
 
+
 const getCharacters = async (req, res) => {
     try {
-        const characters = await Character.find().sort({ createdAt: -1 }); // Get latest first
+        let { gameSessionId } = req.query; // Accept gameSessionId as a query param
+
+        let query = {};
+        if (gameSessionId) {
+            if (!mongoose.Types.ObjectId.isValid(gameSessionId)) {
+                return res.status(400).json({ message: "Invalid gameSessionId format" });
+            }
+            query.gameSessionId = new mongoose.Types.ObjectId(gameSessionId);
+        }
+
+        const characters = await Character.find(query).sort({ createdAt: -1 });
+
         res.status(200).json(characters);
     } catch (error) {
         console.error("Error fetching characters:", error);
@@ -37,11 +60,21 @@ const getCharacters = async (req, res) => {
     }
 };
 
-// 🔥 New function to get characters by name
+
 const getCharacterByName = async (req, res) => {
     try {
         const { name } = req.params;
-        const character = await Character.findOne({ name });
+        let { gameSessionId } = req.query; // Optional session filter
+
+        let query = { name: name };
+        if (gameSessionId) {
+            if (!mongoose.Types.ObjectId.isValid(gameSessionId)) {
+                return res.status(400).json({ message: "Invalid gameSessionId format" });
+            }
+            query.gameSessionId = new mongoose.Types.ObjectId(gameSessionId);
+        }
+
+        const character = await Character.findOne(query);
 
         if (!character) {
             return res.status(404).json({ message: "Character not found" });
@@ -54,4 +87,9 @@ const getCharacterByName = async (req, res) => {
     }
 };
 
-module.exports = { createCharacter, getCharacters, getCharacterByName};
+
+module.exports = {
+    createCharacter,
+    getCharacters,
+    getCharacterByName
+};
