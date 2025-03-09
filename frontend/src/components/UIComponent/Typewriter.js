@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-const Typewriter = ({ text, speed = 50, delay = 0 }) => {
+const Typewriter = ({ text = "", speed = 50, delay = 0 }) => {
 	const [displayText, setDisplayText] = useState("");
 
 	useEffect(() => {
+		// Reset displayText when the text prop changes
+		setDisplayText("");
+
 		let currentIndex = 0;
 		const timeout = setTimeout(() => {
 			const interval = setInterval(() => {
 				if (currentIndex < text.length) {
-					setDisplayText((prev) => prev + text[currentIndex]);
+					// Ensure text[currentIndex] is a valid character
+					const char = text[currentIndex] || "";
+					setDisplayText((prev) => prev + char);
 					currentIndex++;
 				} else {
 					clearInterval(interval);

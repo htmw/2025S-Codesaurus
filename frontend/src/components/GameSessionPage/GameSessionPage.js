@@ -130,9 +130,8 @@ function GameSessionPage() {
 
                 <div className="message-area">
                     {messages.map((msg, index) => {
-                        const isLastMessage = index === messages.length - 2;
+                        const isLastMessage = index === messages.length - 1;
                         const isNarrator = msg.sender === "narrator";
-
                         return (
                             <motion.div
                                 key={index}
@@ -142,7 +141,7 @@ function GameSessionPage() {
                                 transition={{ duration: 0.5 }}
                             >
                                 {isNarrator && isLastMessage ? (
-                                    <Typewriter text={msg.text} speed={15} delay={0} />
+                                    <Typewriter text={msg.text || ""} speed={15} delay={0} />
                                 ) : (
                                     isNarrator ? msg.text : <em>"{msg.text}"</em>
                                 )}
