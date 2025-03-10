@@ -1,6 +1,5 @@
 const express = require("express");
 const { saveLog, getAllLogs, getLogsBySession } = require("../controllers/logController");
-const { saveLog, getAllLogs, getLogsBySession } = require("../controllers/logController");
 
 const router = express.Router();
 

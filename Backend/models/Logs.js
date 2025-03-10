@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const logSchema = new mongoose.Schema({
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "GameSession", required: true }, // Links to a game session
     context: { type: String, required: true },   // AI's story state before the user input
-    userInput: { type: String, required: true }, // Player's response
+    userInput: { type: String, required: false }, // Player's response
     timestamp: { type: Date, default: Date.now } // Time - used for ordering
 });
 
