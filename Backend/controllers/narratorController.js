@@ -17,16 +17,19 @@ const generateNarration = async (playerInput, sessionId, storyPrompt) => {
 
 		const prompt = `
             You are an AI Dungeon Master for a D&D game.
+            Keep responses within 250 tokens.
             Story setup: "${storyPrompt}"
             Player choices so far: [${previousChoices.join(", ")}]
             The player now says: "${playerInput}".
-            Continue the story based on these choices.
+            Continue the story in a concise manner, progressing the adventure in 2-3 sentences.
+            Always end the response by prompting the player with a clear question which can be answered freely.
         `;
 
 		const response = await openai.chat.completions.create({
 			model: "gpt-4",
 			messages: [{ role: "system", content: "You are a fantasy narrator guiding players." }, { role: "user", content: prompt }],
-			max_tokens: 250,
+			max_tokens: 250, // Ensures OpenAI doesn't exceed 250 tokens
+			temperature: 0.8, // Adjusted for variety but not too unpredictable
 		});
 
 		return response.choices[0].message.content;
@@ -35,6 +38,7 @@ const generateNarration = async (playerInput, sessionId, storyPrompt) => {
 		return "The narrator pauses, as if lost in thought...";
 	}
 };
+
 
 /**
  * Start a New Game Session
