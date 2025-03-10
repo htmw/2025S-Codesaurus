@@ -1,9 +1,11 @@
 const Log = require("../models/Logs");
+const GameSession = require("../models/GameSession");
 
 const saveLog = async (req, res) => {
    
-        const { context, userInput } = req.body;
-        const logEntry = new Log({ context, userInput });
+        const { sessionId ,context, userInput } = req.body;
+
+        const logEntry = new Log({ sessionId, context, userInput });
         await logEntry.save();
         res.status(201).json({ message: "Log saved successfully" });
 };
