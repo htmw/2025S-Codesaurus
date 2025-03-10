@@ -1,0 +1,36 @@
+.story-card {
+	width: 225px;
+    height: 425px;
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 20px;
+    margin: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-color: #0A2D35;
+}
+
+.story-card.selected {
+    border: 2px solid #FFFFFF;
+    transform: scale(1.1);
+}
+
+/* .story-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+} */
+
+.story-card .card-title {
+    font-size: 1rem;
+    font-weight: bold;
+	color: #FFD966;
+}
+
+.story-card .card-text {
+    font-size: 1rem;
+    color: #FFFFFF;
+}
+
+.story-card p {
+    font-size: 0.9rem;
+    color: #c4c4c4;
+}
