@@ -66,6 +66,10 @@
 	margin-top: 10px;
 }
 
+.chat-input input:focus {
+	outline: none;
+}
+
 .chat-input-field {
 	background: transparent;
 	border: none;

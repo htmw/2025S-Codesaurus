@@ -22,7 +22,8 @@ const generateNarration = async (playerInput, sessionId, storyPrompt) => {
             Player choices so far: [${previousChoices.join(", ")}]
             The player now says: "${playerInput}".
             Continue the story in a concise manner, progressing the adventure in 2-3 sentences.
-            Always end the response by prompting the player with a clear question which can be answered freely.
+            Always end the response by prompting the player with a clear, **open-ended** question.
+            Do NOT list multiple choices or suggest predefined options—let the player decide freely.
         `;
 
 		const response = await openai.chat.completions.create({
@@ -38,7 +39,6 @@ const generateNarration = async (playerInput, sessionId, storyPrompt) => {
 		return "The narrator pauses, as if lost in thought...";
 	}
 };
-
 
 /**
  * Start a New Game Session
