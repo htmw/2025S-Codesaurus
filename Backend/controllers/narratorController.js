@@ -119,9 +119,34 @@ const playTurn = async (req, res) => {
 			threshold: narrationResponse.threshold,
 			isCompleted: session.isCompleted
 		}
-		console.log('response: ', response);
 
 		res.json(response);
+	} catch (err) {
+		res.status(500).json({ message: "Server error", error: err.message });
+	}
+};
+
+const rollDice = async (req, res) => {
+	const { sessionId } = req.body;
+	if (!sessionId) return res.status(400).json({ message: "Missing session ID." });
+
+	try {
+		const session = await GameSession.findById(sessionId);
+		if (!session || !session.requiresRoll) {
+			return res.status(400).json({ message: "No roll required for this session." });
+		}
+
+		const diceRoll = Math.floor(Math.random() * 20) + 1;
+		const success = diceRoll >= session.rollThreshold;
+
+		res.json({
+			diceRoll,
+			threshold: session.rollThreshold,
+			success,
+			message: success
+				? "🎲 Success! Your action goes as planned."
+				: "🎲 Failure. Your attempt didn’t quite succeed.",
+		});
 	} catch (err) {
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
@@ -182,4 +207,4 @@ const getChoicesForSession = async (req, res) => {
 	}
 };
 
-module.exports = { startGame, playTurn, getGameState, getChoicesForSession, completeGame };
+module.exports = { startGame, playTurn, getGameState, getChoicesForSession, completeGame, rollDice };
