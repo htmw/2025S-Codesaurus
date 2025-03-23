@@ -18,10 +18,16 @@ const generateNarration = async (playerInput, sessionId, storyPrompt) => {
 You are an AI Dungeon Master for a fantasy text-based game.
 Respond ONLY in this JSON format:
 {
+  "requiresRoll": true | false,
+  "threshold": number | null,
   "narration": "string ending with a question"
 }
 
 Rules:
+- Only set "requiresRoll": true for actions with meaningful uncertainty, physical danger, or skill-based risk.
+- Examples: climbing cliffs, disarming traps, attacking enemies.
+- Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
+- Choose a threshold between 8–18 when rolling is necessary.
 - narration should be concise (2–3 sentences) and end with an open-ended question.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
@@ -46,6 +52,8 @@ The player now says: "${playerInput}"
 	} catch (error) {
 		console.error("OpenAI API error:", error);
 		return {
+			requiresRoll: false,
+			threshold: null,
 			narration: "The narrator pauses, as if lost in thought..."
 		};
 	}
@@ -94,13 +102,26 @@ const playTurn = async (req, res) => {
 		const narrationResponse = await generateNarration(playerChoice, sessionId, session.storyState);
 
 		session.storyState = narrationResponse.narration;
+		session.requiresRoll = narrationResponse.requiresRoll;
+		session.rollThreshold = narrationResponse.threshold;
+
+		const logCount = await Log.countDocuments({ sessionId });
+		if (playerChoice.toLowerCase().includes("escape") || logCount >= 10) {
+			session.isCompleted = true;
+			session.endingState = `The journey ends here... ${narrationResponse.narration}`;
+		}
 
 		await session.save();
 
-		res.json({
+		const response = {
 			storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
+			requiresRoll: narrationResponse.requiresRoll,
+			threshold: narrationResponse.threshold,
 			isCompleted: session.isCompleted
-		});
+		}
+		console.log('response: ', response);
+
+		res.json(response);
 	} catch (err) {
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
@@ -139,6 +160,8 @@ const getGameState = async (req, res) => {
 			storyState: session.storyState,
 			choices,
 			isCompleted: session.isCompleted,
+			requiresRoll: session.requiresRoll || false,
+			threshold: session.rollThreshold || null,
 		});
 	} catch (err) {
 		res.status(500).json({ message: "Server error", error: err.message });
