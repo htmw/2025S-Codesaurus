@@ -9,7 +9,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 /**
  * AI Narrator Function - Generates AI narration based on past choices
  */
-const generateNarration = async (playerInput, sessionId, storyPrompt, diceRollResult = null) => {
+const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollResult = null) => {
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
@@ -41,7 +41,7 @@ Outcome: ${diceRollResult.success ? "Success" : "Failure"}
 				: ""}
 Story setup: "${storyPrompt}"
 Player choices so far: [${previousChoices.join(", ")}]
-${diceRollResult ? "" : `The player now says: "${playerInput}"`}
+${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
 		`;
 
 		const response = await openai.chat.completions.create({
@@ -104,34 +104,45 @@ const playTurn = async (req, res) => {
 			return res.json({ message: "Game has already ended.", endingState: session.endingState });
 		}
 
+		// TODO: save to last log in session
 		await Log.create({ sessionId, context: session.storyState, userInput: playerChoice });
 
-		const narrationResponse = await generateNarration(playerChoice, sessionId, session.storyState);
-
-		session.storyState = narrationResponse.narration;
-		session.requiresRoll = narrationResponse.requiresRoll;
-		session.rollThreshold = narrationResponse.threshold;
-
-		const logCount = await Log.countDocuments({ sessionId });
-		if (playerChoice.toLowerCase().includes("escape") || logCount >= 10) {
-			session.isCompleted = true;
-			session.endingState = `The journey ends here... ${narrationResponse.narration}`;
-		}
-
-		await session.save();
-
-		const response = {
-			storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
-			requiresRoll: narrationResponse.requiresRoll,
-			threshold: narrationResponse.threshold,
-			isCompleted: session.isCompleted
-		}
+		const response = await processNarration({
+			session,
+			storyPrompt: session.storyState,
+			playerChoice,
+		});
 
 		res.json(response);
 	} catch (err) {
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
 };
+
+const processNarration = async ({ session, storyPrompt, playerChoice = null, diceRollResult = null }) => {
+	// TODO: why does generateNarration need storyPrompt?
+	const narrationResponse = await generateNarration(playerChoice, session._id, storyPrompt, diceRollResult);
+
+	session.storyState = narrationResponse.narration;
+	session.requiresRoll = narrationResponse.requiresRoll;
+	session.rollThreshold = narrationResponse.threshold;
+
+	const logCount = await Log.countDocuments({ sessionId: session._id });
+	if (playerChoice?.toLowerCase().includes("escape") || logCount >= 10) {
+		session.isCompleted = true;
+		session.endingState = `The journey ends here... ${narrationResponse.narration}`;
+	}
+
+	await session.save();
+
+	return {
+		storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
+		requiresRoll: narrationResponse.requiresRoll,
+		threshold: narrationResponse.threshold,
+		isCompleted: session.isCompleted
+	};
+};
+
 
 const rollDice = async (req, res) => {
 	const { sessionId } = req.body;
@@ -146,19 +157,13 @@ const rollDice = async (req, res) => {
 		const diceRoll = Math.floor(Math.random() * 20) + 1;
 		const success = diceRoll >= session.rollThreshold;
 
-		const narrationResponse = await generateNarration(
-			null,
-			sessionId,
-			session.storyId.prompt,
-			{ success, diceRoll, threshold: session.rollThreshold }
-		);
+		const story = await Story.findById(session.storyId);
 
-		// Update session
-		session.storyState = narrationResponse.narration;
-		session.requiresRoll = narrationResponse.requiresRoll;
-		session.rollThreshold = narrationResponse.threshold;
-
-		await session.save();
+		const response = await processNarration({
+			session,
+			storyPrompt: story.prompt,
+			diceRollResult: { success, diceRoll, threshold: session.rollThreshold }
+		});
 
 		res.json({
 			diceRoll,
@@ -166,12 +171,10 @@ const rollDice = async (req, res) => {
 			success,
 			message: success
 				? "🎲 Success! Your action goes as planned."
-				: "🎲 Failure. Your attempt didn’t quite succeed.",
-			storyState: narrationResponse.narration,
-			requiresRoll: narrationResponse.requiresRoll,
-			threshold: narrationResponse.threshold,
-			isCompleted: session.isCompleted
+				: "🎲 Failure. Your attempt didn't quite succeed.",
+			...response
 		});
+
 	} catch (err) {
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
