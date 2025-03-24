@@ -74,12 +74,19 @@ const startGame = async (req, res) => {
 		const story = await Story.findById(storyId);
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
+		const storyState = `The adventure begins...\n${story.prompt}`
 		const session = new GameSession({
 			storyId,
-			storyState: `The adventure begins...\n${story.prompt}`,
+			storyState,
 		});
 
 		await session.save();
+
+		await Log.create({
+			sessionId: session._id.toString(),
+			context: storyState,
+			userInput: null
+		});
 
 		res.json({
 			message: `Game started: ${story.title}`,
@@ -104,8 +111,20 @@ const playTurn = async (req, res) => {
 			return res.json({ message: "Game has already ended.", endingState: session.endingState });
 		}
 
-		// TODO: save to last log in session
-		await Log.create({ sessionId, context: session.storyState, userInput: playerChoice });
+		const lastLog = await Log.findOne({
+			sessionId,
+			userInput: {
+				$in: [null, ""]
+			}
+		}).sort({ timestamp: -1 });
+
+		if (lastLog) {
+			lastLog.userInput = playerChoice;
+			await lastLog.save();
+		} else {
+			// If no pending log found, fallback to creating a new log
+			await Log.create({ sessionId, context: session.storyState, userInput: playerChoice });
+		}
 
 		const response = await processNarration({
 			session,
@@ -134,6 +153,13 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 	}
 
 	await session.save();
+
+	await Log.create({
+		sessionId: session._id,
+		context: narrationResponse.narration,
+		userInput: null
+	});
+
 
 	return {
 		storyState: session.isCompleted ? session.endingState : narrationResponse.narration,

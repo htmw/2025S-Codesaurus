@@ -22,7 +22,6 @@ function GameSessionPage() {
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        console.log('sessionId: ', sessionId);
         if (!sessionId) {
             startGame();
         } else {
