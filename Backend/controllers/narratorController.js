@@ -9,7 +9,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 /**
  * AI Narrator Function - Generates AI narration based on past choices
  */
-const generateNarration = async (playerInput, sessionId, storyPrompt) => {
+const generateNarration = async (playerInput, sessionId, storyPrompt, diceRollResult = null) => {
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
@@ -32,9 +32,16 @@ Rules:
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
 
+${diceRollResult ?
+				`The player's last action required a dice roll.
+Dice Result: ${diceRollResult.diceRoll}
+Threshold to Succeed: ${diceRollResult.threshold}
+Outcome: ${diceRollResult.success ? "Success" : "Failure"}
+	`
+				: ""}
 Story setup: "${storyPrompt}"
 Player choices so far: [${previousChoices.join(", ")}]
-The player now says: "${playerInput}"
+${diceRollResult ? "" : `The player now says: "${playerInput}"`}
 		`;
 
 		const response = await openai.chat.completions.create({
@@ -139,6 +146,20 @@ const rollDice = async (req, res) => {
 		const diceRoll = Math.floor(Math.random() * 20) + 1;
 		const success = diceRoll >= session.rollThreshold;
 
+		const narrationResponse = await generateNarration(
+			null,
+			sessionId,
+			session.storyId.prompt,
+			{ success, diceRoll, threshold: session.rollThreshold }
+		);
+
+		// Update session
+		session.storyState = narrationResponse.narration;
+		session.requiresRoll = narrationResponse.requiresRoll;
+		session.rollThreshold = narrationResponse.threshold;
+
+		await session.save();
+
 		res.json({
 			diceRoll,
 			threshold: session.rollThreshold,
@@ -146,6 +167,10 @@ const rollDice = async (req, res) => {
 			message: success
 				? "🎲 Success! Your action goes as planned."
 				: "🎲 Failure. Your attempt didn’t quite succeed.",
+			storyState: narrationResponse.narration,
+			requiresRoll: narrationResponse.requiresRoll,
+			threshold: narrationResponse.threshold,
+			isCompleted: session.isCompleted
 		});
 	} catch (err) {
 		res.status(500).json({ message: "Server error", error: err.message });
