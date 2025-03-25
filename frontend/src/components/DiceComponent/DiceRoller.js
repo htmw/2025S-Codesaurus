@@ -30,7 +30,7 @@ const DiceModel = ({ rolling, targetRotation, onClick }) => {
 		<primitive
 			object={scene}
 			ref={diceRef}
-			scale={100} // Adjust scale if needed
+			scale={50} // Adjust scale if needed
 			onClick={onClick}
 			position={[0, 0, 0]}
 			castShadow

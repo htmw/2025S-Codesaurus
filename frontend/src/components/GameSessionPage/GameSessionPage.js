@@ -4,7 +4,7 @@ import { Container, Form, InputGroup, Button } from "react-bootstrap";
 import { FaPaperPlane } from "react-icons/fa";
 import Typewriter from "../UIComponent/Typewriter";
 import DiceRoller from "../DiceComponent/DiceRoller";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import "./GameSessionPage.css";
 
 const API_BASE_URL = "http://localhost:8081/api";
@@ -136,15 +136,41 @@ function GameSessionPage() {
     };
 
 
-    const handleRoll = () => {
+    const handleRoll = async () => {
         if (rolling) return;
-
+        if (!sessionId) return;
         setRolling(true);
-        setTimeout(() => {
-            const newValue = Math.floor(Math.random() * 6) + 1;
-            setDiceValue(newValue);
+        try {
+            const response = await fetch(`${API_BASE_URL}/roll-dice`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sessionId }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setDiceValue(data.diceRoll); // Update dice face
+                setMessages(prev => [
+                    ...prev,
+                    { sender: "player", text: `🎲 Rolled a ${data.diceRoll} (Threshold: ${data.threshold})` },
+                    { sender: "narrator", text: data.storyState }
+                ]);
+                setTimeout(() => {
+                    setRequiresRoll(data.requiresRoll);
+                }, 4000);
+            } else {
+                throw new Error("Dice roll failed");
+            }
+        } catch (error) {
+            console.error("Dice Roll Error:", error);
+            setMessages(prev => [
+                ...prev,
+                { sender: "narrator", text: "Something went wrong while rolling the dice." }
+            ]);
+        } finally {
             setRolling(false);
-        }, 800); // match dice animation time
+        }
     };
 
     return (
@@ -195,15 +221,32 @@ function GameSessionPage() {
                         className="chat-input-field"
                     />
 
-                    {requiresRoll ? (
-                        <>
-                            <DiceRoller size={50} value={diceValue} rolling={rolling} onRoll={handleRoll} />
-                        </>
-                    ) : (
-                        <Button className="send-button" onClick={handleSendMessage} disabled={!playerInput.trim()}>
-                            <FaPaperPlane size={18} />
-                        </Button>
-                    )}
+                    <AnimatePresence mode="wait">
+                        {requiresRoll ? (
+                            <motion.div
+                                key="dice"
+                                initial={{ opacity: 1, scale: 1 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.5 } }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DiceRoller value={diceValue} rolling={rolling} onRoll={handleRoll} size={30} />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="send"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <Button className="send-button" onClick={handleSendMessage} disabled={!playerInput.trim()}>
+                                    <FaPaperPlane size={18} />
+                                </Button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                 </InputGroup>
 
             </Container>
