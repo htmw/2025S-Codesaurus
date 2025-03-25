@@ -4,7 +4,7 @@ const { saveStory, getAllStories, getStoryById } = require("../controllers/story
 const router = express.Router();
 
 //POST route to create a story
-router.post("admin/story", saveStory);
+router.post("/admin/story", saveStory);
 
 //GET Stories from mongodb
 router.get("/stories", getAllStories);

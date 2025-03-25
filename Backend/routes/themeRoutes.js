@@ -4,7 +4,7 @@ const { saveTheme, getAllThemes, getThemebyId } = require("../controllers/themeC
 const router = express.Router();
 
 // POST route to create a theme
-router.post("admin/themes", saveTheme);
+router.post("/admin/themes", saveTheme);
 
 // GET route to fetch all themes
 router.get("/themes", getAllThemes);
