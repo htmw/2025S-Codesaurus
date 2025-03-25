@@ -1,0 +1,59 @@
+/* Container for NPCs */
+.npc-container {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #0A2D35;
+    border-radius: 10px;
+    width: 300px;
+    position: fixed;
+    top: 100px;  /* Position the sidebar below the header */
+    right: 20px; /* Align sidebar to the right */
+    height: calc(100vh - 100px); /* Full height minus the header space */
+    overflow-y: auto; /* Allow scrolling if there are many NPCs */
+    box-shadow: -4px 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 999;
+}
+
+/* Header of the NPC container */
+.npc-header {
+    color: #FFD966;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+/* Individual NPC Card Styling */
+.npc-card {
+    background-color: #14333B;
+    color: #FFFFFF;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+/* Hover effect on NPC cards */
+.npc-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Title styling inside the NPC card */
+.npc-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #FFD966;
+}
+
+/* Role and description text inside NPC cards */
+.npc-role, .npc-description {
+    font-size: 1rem;
+    color: #c4c4c4;
+}
+
+/* Stat info inside the NPC card */
+.npc-card .npc-stats {
+    font-size: 0.9rem;
+    color: #c4c4c4;
+}
