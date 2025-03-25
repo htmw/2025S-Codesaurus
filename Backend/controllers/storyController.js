@@ -61,7 +61,6 @@ const getAllStories = async (req, res) => {
         .populate("npcIds");
         
         const story = await Story.find().populate("npcIds"); // Will populate the npcIds array with NPC data
-        console.log(story);
 
         if (stories.length === 0) {
             return res.status(404).json({ message: "No stories found" });
