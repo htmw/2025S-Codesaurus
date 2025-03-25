@@ -27,8 +27,8 @@ Rules:
 - Only set "requiresRoll": true for actions with meaningful uncertainty, physical danger, or skill-based risk.
 - Examples: climbing cliffs, disarming traps, attacking enemies.
 - Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
-- Choose a threshold between 8–18 when rolling is necessary.
-- narration should be concise (2–3 sentences) and end with an open-ended question.
+- Choose a threshold between 8-18 when rolling is necessary.
+- narration should be concise (2-3 sentences) and end with an open-ended question.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
 
@@ -111,20 +111,7 @@ const playTurn = async (req, res) => {
 			return res.json({ message: "Game has already ended.", endingState: session.endingState });
 		}
 
-		const lastLog = await Log.findOne({
-			sessionId,
-			userInput: {
-				$in: [null, ""]
-			}
-		}).sort({ timestamp: -1 });
-
-		if (lastLog) {
-			lastLog.userInput = playerChoice;
-			await lastLog.save();
-		} else {
-			// If no pending log found, fallback to creating a new log
-			await Log.create({ sessionId, context: session.storyState, userInput: playerChoice });
-		}
+		await addToLastLog(sessionId, playerChoice)
 
 		const response = await processNarration({
 			session,
@@ -169,6 +156,25 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 	};
 };
 
+const addToLastLog = async (sessionId, userInput) => {
+	const lastNarratorLog = await Log.findOne({
+		sessionId,
+		userInput: {
+			$in: [null, ""]
+		}
+	}).sort({ timestamp: -1 });
+	if (lastNarratorLog) {
+		lastNarratorLog.userInput = userInput;
+		await lastNarratorLog.save();
+	} else {
+		// If no pending log found, fallback to creating a new log
+		await Log.create({
+			sessionId,
+			context: null,
+			userInput
+		});
+	}
+}
 
 const rollDice = async (req, res) => {
 	const { sessionId } = req.body;
@@ -182,6 +188,9 @@ const rollDice = async (req, res) => {
 
 		const diceRoll = Math.floor(Math.random() * 20) + 1;
 		const success = diceRoll >= session.rollThreshold;
+
+		const userInput = `Player rolled a ${diceRoll} (threshold: ${session.rollThreshold}) — ${success ? "Success" : "Failure"}`;
+		await addToLastLog(sessionId, userInput)
 
 		const story = await Story.findById(session.storyId);
 
