@@ -27,7 +27,7 @@ Rules:
 - Only set "requiresRoll": true for actions with meaningful uncertainty, physical danger, or skill-based risk.
 - Examples: climbing cliffs, disarming traps, attacking enemies.
 - Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
-- Choose a threshold between 8-18 when rolling is necessary.
+- Choose a threshold between 1-6 (inclusive) when rolling is necessary.
 - narration should be concise (2-3 sentences) and end with an open-ended question.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
@@ -143,7 +143,7 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 
 	await Log.create({
 		sessionId: session._id,
-		context: narrationResponse.narration,
+		context: narrationResponse.requiresRoll ? `[Dice roll required]: ${narrationResponse.narration}` : narrationResponse.narration,
 		userInput: null
 	});
 
@@ -186,7 +186,7 @@ const rollDice = async (req, res) => {
 			return res.status(400).json({ message: "No roll required for this session." });
 		}
 
-		const diceRoll = Math.floor(Math.random() * 20) + 1;
+		const diceRoll = Math.floor(Math.random() * 6) + 1;
 		const success = diceRoll >= session.rollThreshold;
 
 		const userInput = `Player rolled a ${diceRoll} (threshold: ${session.rollThreshold}) — ${success ? "Success" : "Failure"}`;

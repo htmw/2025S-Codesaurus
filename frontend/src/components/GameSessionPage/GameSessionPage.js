@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Container, Form, InputGroup, Button } from "react-bootstrap";
 import { FaPaperPlane } from "react-icons/fa";
 import Typewriter from "../UIComponent/Typewriter";
+import DiceRoller from "../DiceComponent/DiceRoller";
 import { motion } from "framer-motion";
 import "./GameSessionPage.css";
 
@@ -20,6 +21,11 @@ function GameSessionPage() {
     const [playerInput, setPlayerInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
+
+    const [requiresRoll, setRequiresRoll] = useState(false);
+    const [rolling, setRolling] = useState(false);
+    const [diceValue, setDiceValue] = useState(1);
+    const [isDisabled, setIsDisabled] = useState(false);
 
     useEffect(() => {
         if (!sessionId) {
@@ -68,18 +74,23 @@ function GameSessionPage() {
     const fetchMessageHistory = async (sessionId) => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/logs/${sessionId}`);
+            const response = await fetch(`${API_BASE_URL}/game-state/${sessionId}`);
             const data = await response.json();
 
             if (response.ok) {
-                const formattedMessages = data.map((log) => [
+                // Fetch logs separately
+                const logsRes = await fetch(`${API_BASE_URL}/logs/${sessionId}`);
+                const logsData = await logsRes.json();
+
+                const formattedMessages = logsData.map((log) => [
                     { sender: "narrator", text: log.context },
                     { sender: "player", text: log.userInput }
                 ]).flat().filter(msg => msg.text);
 
                 setMessages(formattedMessages);
+                setRequiresRoll(data.requiresRoll); // update dice state
             } else {
-                throw new Error("Failed to fetch chat history.");
+                throw new Error("Failed to fetch game state.");
             }
         } catch (error) {
             console.error("Error fetching message history:", error);
@@ -87,6 +98,7 @@ function GameSessionPage() {
             setLoading(false);
         }
     };
+
 
     const handleSendMessage = async () => {
         if (!playerInput.trim() || !sessionId) return;
@@ -108,6 +120,7 @@ function GameSessionPage() {
             if (response.ok) {
                 const aiMessage = { sender: "narrator", text: data.storyState };
                 setMessages((prev) => [...prev, aiMessage]);
+                setRequiresRoll(data.requiresRoll || false);
             } else {
                 throw new Error("Failed to get AI response.");
             }
@@ -120,6 +133,18 @@ function GameSessionPage() {
         } finally {
             setIsTyping(false);
         }
+    };
+
+
+    const handleRoll = () => {
+        if (rolling) return;
+
+        setRolling(true);
+        setTimeout(() => {
+            const newValue = Math.floor(Math.random() * 6) + 1;
+            setDiceValue(newValue);
+            setRolling(false);
+        }, 800); // match dice animation time
     };
 
     return (
@@ -162,17 +187,25 @@ function GameSessionPage() {
                 <InputGroup className="chat-input">
                     <Form.Control
                         type="text"
-                        placeholder="Make your move..."
+                        placeholder={requiresRoll ? "Roll the dice..." : "Make your move..."}
                         value={playerInput}
                         onChange={(e) => setPlayerInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                        disabled={loading || isTyping}
+                        onKeyDown={(e) => e.key === "Enter" && !requiresRoll && handleSendMessage()}
+                        disabled={loading || isTyping || requiresRoll}
                         className="chat-input-field"
                     />
-                    <Button className="send-button" onClick={handleSendMessage} disabled={!playerInput.trim()}>
-                        <FaPaperPlane size={18} />
-                    </Button>
+
+                    {requiresRoll ? (
+                        <>
+                            <DiceRoller size={50} value={diceValue} rolling={rolling} onRoll={handleRoll} />
+                        </>
+                    ) : (
+                        <Button className="send-button" onClick={handleSendMessage} disabled={!playerInput.trim()}>
+                            <FaPaperPlane size={18} />
+                        </Button>
+                    )}
                 </InputGroup>
+
             </Container>
         </Container>
     );
