@@ -53,6 +53,31 @@ const saveStory = async (req, res) => {
     }
 };
 
+//Patch route to update fields for a story
+const updateStory = async (req, res) => {
+    const { id } = req.params; // Get the story ID
+    const updates = req.body; // Get the fields to update
+
+    try {
+        // Find and update the story with provided fields
+        const updatedStory = await Story.findByIdAndUpdate(
+            id,
+            { $set: updates }, // Only update provided fields
+            { new: true, runValidators: true } // Return updated story
+        ).populate("themeId", "title")
+        .populate("npcIds");
+
+        if (!updatedStory) {
+            return res.status(404).json({ message: "Story not found" });
+        }
+
+        res.status(200).json({ message: "Story updated successfully", story: updatedStory });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};
+
+
 // GET route to fetch all stories
 const getAllStories = async (req, res) => {
     try {
@@ -60,8 +85,6 @@ const getAllStories = async (req, res) => {
         .populate("themeId", "title")  // Populate themeId with the themeId name and title; 
         .populate("npcIds");
         
-        const story = await Story.find().populate("npcIds"); // Will populate the npcIds array with NPC data
-
         if (stories.length === 0) {
             return res.status(404).json({ message: "No stories found" });
         }
@@ -94,4 +117,4 @@ const getStoryById = async (req, res) => {
 };
 
 
-module.exports = { saveStory, getAllStories, getStoryById };
+module.exports = { saveStory, updateStory, getAllStories, getStoryById };
