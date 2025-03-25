@@ -1,10 +1,10 @@
 const Story = require('../models/Stories')
-const Theme = require("../models/Themes");
-
+const Theme = require('../models/Themes');
+const NPC = require('../models/NPC');
 
 // POST route to create a new story
 const saveStory = async (req, res) => {
-    const { title, description, themeId, prompt, narrator_tone, duration } = req.body;
+    const { title, description, themeId, prompt, narrator_tone, duration, npcIds } = req.body;
     // Ensure the title is provided
     if (!title) {
         return res.status(400).json({ message: "title is required" });
@@ -23,6 +23,19 @@ const saveStory = async (req, res) => {
             return res.status(400).json({ message: "Invalid themeId" });
         }
 
+        let validNpcIds = [];
+
+        // If npcIds are provided, validate each one
+        if (npcIds && npcIds.length > 0) {
+            const npcs = await NPC.find({ _id: { $in: npcIds } });
+
+            if (npcs.length !== npcIds.length) {
+                return res.status(400).json({ message: "One or more NPC IDs are invalid." });
+            }
+
+            validNpcIds = npcIds; // Assign validated NPC IDs
+        }
+
         const newStory = new Story({
             title,
             description,
@@ -30,6 +43,7 @@ const saveStory = async (req, res) => {
             prompt,
             narrator_tone,
             duration,
+            npcIds: validNpcIds
         });
 
         await newStory.save();  // Save the Story to the database
@@ -43,8 +57,12 @@ const saveStory = async (req, res) => {
 const getAllStories = async (req, res) => {
     try {
         const stories = await Story.find().sort({ timestamp: -1 }) // Retrieve all stories sorted by most recent timestamp
-        .populate("themeId", "title");  // Populate themeId with the themeId name and title; 
+        .populate("themeId", "title")  // Populate themeId with the themeId name and title; 
+        .populate("npcIds");
         
+        const story = await Story.find().populate("npcIds"); // Will populate the npcIds array with NPC data
+        console.log(story);
+
         if (stories.length === 0) {
             return res.status(404).json({ message: "No stories found" });
         }
@@ -61,7 +79,9 @@ const getStoryById = async (req, res) => {
 
     try {
         // Find the story by its ID
-        const story = await Story.findById(id).populate("themeId", "title");
+        const story = await Story.findById(id)
+        .populate("themeId", "title")
+        .populate("npcIds");
 
         if (!story) {
             return res.status(404).json({ message: "Story not found" });
