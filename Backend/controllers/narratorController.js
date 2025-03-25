@@ -188,7 +188,6 @@ const rollDice = async (req, res) => {
 
 		const diceRoll = Math.floor(Math.random() * 6) + 1;
 		const success = diceRoll >= session.rollThreshold;
-
 		const userInput = `Player rolled a ${diceRoll} (threshold: ${session.rollThreshold}) — ${success ? "Success" : "Failure"}`;
 		await addToLastLog(sessionId, userInput)
 
@@ -202,7 +201,8 @@ const rollDice = async (req, res) => {
 
 		res.json({
 			diceRoll,
-			threshold: session.rollThreshold,
+			diceUserMessage: userInput,
+			rollThreshold: session.rollThreshold,
 			success,
 			message: success
 				? "🎲 Success! Your action goes as planned."

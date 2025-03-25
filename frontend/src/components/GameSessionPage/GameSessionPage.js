@@ -153,7 +153,7 @@ function GameSessionPage() {
                 setDiceValue(data.diceRoll); // Update dice face
                 setMessages(prev => [
                     ...prev,
-                    { sender: "player", text: `🎲 Rolled a ${data.diceRoll} (Threshold: ${data.threshold})` },
+                    { sender: "player", text: data.diceUserMessage },
                     { sender: "narrator", text: data.storyState }
                 ]);
                 setTimeout(() => {
