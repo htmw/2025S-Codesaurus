@@ -19,6 +19,18 @@ const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollR
 		//get story in game session
 		const story = await Story.findById(session.storyId).populate("npcIds");
 
+		//Filter Active NPCs
+		const activeNpcIds = session.npcStates
+		.filter(n => n.isActive)
+		.map(n => n.npcId.toString());
+		const activeNpcs = story.npcIds.filter(npc =>
+		activeNpcIds.includes(npc._id.toString())
+		);
+
+		const npcContext = activeNpcs.map(npc =>
+			`${npc.title} (${npc.role}): ${npc.description}`
+		).join("\n");a
+
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
 Respond ONLY in this JSON format:
@@ -38,6 +50,8 @@ Rules:
 - Do NOT offer predefined choices.
 
 NPCs present in the story: ${npcList}
+
+NPCs currently present in the scene: ${npcContext}
 
 ${diceRollResult ?
 				`The player's last action required a dice roll.
