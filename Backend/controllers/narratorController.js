@@ -38,6 +38,8 @@ Respond ONLY in this JSON format:
   "requiresRoll": true | false,
   "threshold": number | null,
   "narration": "string ending with a question"
+  "activateNpc": ["npcTitle1", "npcTitle2"],
+  "deactivateNpc": ["npcTitle3"]
 }
 
 Rules:
