@@ -9,7 +9,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 /**
  * AI Narrator Function - Generates AI narration based on past choices
  */
-const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollResult = null) => {
+const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollResult = null, npcList = "") => {
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
