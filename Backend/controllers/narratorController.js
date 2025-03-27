@@ -73,13 +73,20 @@ const startGame = async (req, res) => {
 	if (!storyId) return res.status(400).json({ message: "Missing story ID." });
 
 	try {
-		const story = await Story.findById(storyId);
+		const story = await Story.findById(storyId).populate("npcIds");
+		
+		const npcStates = story.npcIds.map(npc => ({
+			npcId: npc._id,
+			isActive: false // default
+		  }));
+		  
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
 		const storyState = `The adventure begins...\n${story.prompt}`
 		const session = new GameSession({
 			storyId,
 			storyState,
+			npcStates,
 		});
 
 		await session.save();
