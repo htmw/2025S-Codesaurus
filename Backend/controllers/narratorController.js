@@ -13,6 +13,11 @@ const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollR
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
+		
+		//get session of the game
+		const session = await GameSession.findById(sessionId);
+		//get story in game session
+		const story = await Story.findById(session.storyId).populate("npcIds");
 
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
