@@ -3,7 +3,8 @@ import { useLocation } from "react-router-dom";
 import { Container, Form, InputGroup, Button } from "react-bootstrap";
 import { FaPaperPlane } from "react-icons/fa";
 import Typewriter from "../UIComponent/Typewriter";
-import { motion } from "framer-motion";
+import DiceRoller from "../DiceComponent/DiceRoller";
+import { motion, AnimatePresence } from "framer-motion";
 import "./GameSessionPage.css";
 
 const API_BASE_URL = "http://localhost:8081/api";
@@ -21,8 +22,12 @@ function GameSessionPage() {
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
 
+    const [requiresRoll, setRequiresRoll] = useState(false);
+    const [rolling, setRolling] = useState(false);
+    const [diceValue, setDiceValue] = useState(1);
+    const [isDisabled, setIsDisabled] = useState(false);
+
     useEffect(() => {
-        console.log('sessionId: ', sessionId);
         if (!sessionId) {
             startGame();
         } else {
@@ -69,18 +74,23 @@ function GameSessionPage() {
     const fetchMessageHistory = async (sessionId) => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/logs/${sessionId}`);
+            const response = await fetch(`${API_BASE_URL}/game-state/${sessionId}`);
             const data = await response.json();
 
             if (response.ok) {
-                const formattedMessages = data.map((log) => [
+                // Fetch logs separately
+                const logsRes = await fetch(`${API_BASE_URL}/logs/${sessionId}`);
+                const logsData = await logsRes.json();
+
+                const formattedMessages = logsData.map((log) => [
                     { sender: "narrator", text: log.context },
                     { sender: "player", text: log.userInput }
                 ]).flat().filter(msg => msg.text);
 
                 setMessages(formattedMessages);
+                setRequiresRoll(data.requiresRoll); // update dice state
             } else {
-                throw new Error("Failed to fetch chat history.");
+                throw new Error("Failed to fetch game state.");
             }
         } catch (error) {
             console.error("Error fetching message history:", error);
@@ -88,6 +98,7 @@ function GameSessionPage() {
             setLoading(false);
         }
     };
+
 
     const handleSendMessage = async () => {
         if (!playerInput.trim() || !sessionId) return;
@@ -109,6 +120,7 @@ function GameSessionPage() {
             if (response.ok) {
                 const aiMessage = { sender: "narrator", text: data.storyState };
                 setMessages((prev) => [...prev, aiMessage]);
+                setRequiresRoll(data.requiresRoll || false);
             } else {
                 throw new Error("Failed to get AI response.");
             }
@@ -120,6 +132,44 @@ function GameSessionPage() {
             ]);
         } finally {
             setIsTyping(false);
+        }
+    };
+
+
+    const handleRoll = async () => {
+        if (rolling) return;
+        if (!sessionId) return;
+        setRolling(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/roll-dice`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sessionId }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setDiceValue(data.diceRoll); // Update dice face
+                setMessages(prev => [
+                    ...prev,
+                    { sender: "player", text: data.diceUserMessage },
+                    { sender: "narrator", text: data.storyState }
+                ]);
+                setTimeout(() => {
+                    setRequiresRoll(data.requiresRoll);
+                }, 4000);
+            } else {
+                throw new Error("Dice roll failed");
+            }
+        } catch (error) {
+            console.error("Dice Roll Error:", error);
+            setMessages(prev => [
+                ...prev,
+                { sender: "narrator", text: "Something went wrong while rolling the dice." }
+            ]);
+        } finally {
+            setRolling(false);
         }
     };
 
@@ -163,17 +213,42 @@ function GameSessionPage() {
                 <InputGroup className="chat-input">
                     <Form.Control
                         type="text"
-                        placeholder="Make your move..."
+                        placeholder={requiresRoll ? "Roll the dice..." : "Make your move..."}
                         value={playerInput}
                         onChange={(e) => setPlayerInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                        disabled={loading || isTyping}
+                        onKeyDown={(e) => e.key === "Enter" && !requiresRoll && handleSendMessage()}
+                        disabled={loading || isTyping || requiresRoll}
                         className="chat-input-field"
                     />
-                    <Button className="send-button" onClick={handleSendMessage} disabled={!playerInput.trim()}>
-                        <FaPaperPlane size={18} />
-                    </Button>
+
+                    <AnimatePresence mode="wait">
+                        {requiresRoll ? (
+                            <motion.div
+                                key="dice"
+                                initial={{ opacity: 1, scale: 1 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.5 } }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DiceRoller value={diceValue} rolling={rolling} onRoll={handleRoll} size={30} />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="send"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <Button className="send-button" onClick={handleSendMessage} disabled={!playerInput.trim()}>
+                                    <FaPaperPlane size={18} />
+                                </Button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                 </InputGroup>
+
             </Container>
         </Container>
     );
