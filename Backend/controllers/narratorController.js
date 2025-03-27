@@ -48,6 +48,8 @@ Rules:
 - Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
 - Choose a threshold between 1-6 (inclusive) when rolling is necessary.
 - narration should be concise (2-3 sentences) and end with an open-ended question.
+- You may also activate or deactivate NPCs by including them in the "activateNpc" or "deactivateNpc" arrays.
+- Use NPC titles exactly as they appear in the NPCs context below.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
 
