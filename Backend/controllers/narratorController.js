@@ -29,7 +29,7 @@ const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollR
 
 		const npcContext = activeNpcs.map(npc =>
 			`${npc.title} (${npc.role}): ${npc.description}`
-		).join("\n");a
+		).join("\n");
 
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
@@ -80,7 +80,45 @@ ${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
 		});
 
 		const content = response.choices[0].message.content;
-		return JSON.parse(content);
+		const parsedResponse = JSON.parse(content);
+
+		//Toggling NPCs in GameSession
+		if (parsedResponse.activateNpc || parsedResponse.deactivateNpc) {
+			const session = await GameSession.findById(sessionId);
+			const story = await Story.findById(session.storyId).populate("npcIds");
+		//map title to object id for faster lookup
+			const npcMap = {};
+			story.npcIds.forEach(npc => {
+				npcMap[npc.title] = npc._id.toString();
+			});
+		//allowing gpt to toggle active
+			if (parsedResponse.activateNpc) {
+				for (const title of parsedResponse.activateNpc) {
+					const npcId = npcMap[title];//NPC ID by Title
+					if (npcId) {
+						//set specified NPC to active
+						const npcState = session.npcStates.find(n => n.npcId.toString() === npcId);
+						if (npcState) npcState.isActive = true;
+					}
+				}
+			}
+		//allowing gpt to toggle inactive
+			if (parsedResponse.deactivateNpc) {
+				for (const title of parsedResponse.deactivateNpc) {
+					const npcId = npcMap[title]; //NPC ID by Title
+					if (npcId) {
+						//set specified NPC to inactive
+						const npcState = session.npcStates.find(n => n.npcId.toString() === npcId);
+						if (npcState) npcState.isActive = false;
+					}
+				}
+			}
+		
+			await session.save();
+		}
+
+	return parsedResponse;
+		
 	} catch (error) {
 		console.error("OpenAI API error:", error);
 		return {
