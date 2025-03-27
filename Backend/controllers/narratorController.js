@@ -32,6 +32,8 @@ Rules:
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
 
+NPCs present in the story: ${npcList}
+
 ${diceRollResult ?
 				`The player's last action required a dice roll.
 Dice Result: ${diceRollResult.diceRoll}
