@@ -127,7 +127,14 @@ const playTurn = async (req, res) => {
 
 const processNarration = async ({ session, storyPrompt, playerChoice = null, diceRollResult = null }) => {
 	// TODO: why does generateNarration need storyPrompt?
-	const narrationResponse = await generateNarration(playerChoice, session._id, storyPrompt, diceRollResult);
+	
+	//Accepting NPCs
+	const story = await Story.findById(session.storyId).populate("npcIds");
+	const npcList = story.npcIds.map(npc =>
+        `${npc.title} (${npc.role}) - ${npc.description}`
+    ).join(", ");
+
+	const narrationResponse = await generateNarration(playerChoice, session._id, storyPrompt, diceRollResult, npcList);
 
 	session.storyState = narrationResponse.narration;
 	session.requiresRoll = narrationResponse.requiresRoll;
