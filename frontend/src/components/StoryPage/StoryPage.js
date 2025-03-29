@@ -38,9 +38,13 @@ const StoryPage = () => {
 
     // Navigate to game session with selected story
     const handleContinue = () => {
+        // if (selectedStory) {
+        //     navigate(`/gameSession?story=${selectedStory._id}`);
+        // }
         if (selectedStory) {
-            navigate(`/gameSession?story=${selectedStory._id}`);
-        }
+            sessionStorage.setItem("selectedStory", JSON.stringify(selectedStory));
+            navigate(`/character`);
+          }
     };
 
     return (

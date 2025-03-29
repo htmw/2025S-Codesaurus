@@ -28,7 +28,7 @@ app.get("/", (req, res) => {
 
 app.use("/api", logRoutes);
 app.use("/api", narratorRoutes);
-app.use("/api", characterRoutes);
+app.use("/api", characterRoutes); //Characters
 
 app.use("/api", themeRoutes); //Theme
 app.use("/api", storyRoutes); //Story

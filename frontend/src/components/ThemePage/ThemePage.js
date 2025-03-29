@@ -30,6 +30,8 @@ const ThemePage = () => {
     // Navigate to the stories page with the selected theme
     const handleContinue = () => {
       if (selectedTheme) {
+        // navigate(`/stories?theme=${selectedTheme._id}`);
+        sessionStorage.setItem("selectedTheme", JSON.stringify(selectedTheme));
         navigate(`/stories?theme=${selectedTheme._id}`);
       }
     };

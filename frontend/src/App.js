@@ -7,6 +7,7 @@ import ThemePage from "./components/ThemePage/ThemePage";
 import StoryPage from "./components/StoryPage/StoryPage";
 import GameSession from "./components/GameSessionPage/GameSessionPage"
 import ChatWindow from './components/ChatWindow/chat-window';
+import CharacterPage from "./components/CharacterPage/CharacterPage";
 import './App.css';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
 
             <Route path="/themes" element={<ThemePage />} />
             <Route path="/stories" element={<StoryPage />} />
+            <Route path="/character" element={<CharacterPage />} />
             <Route path="/gameSession" element={<GameSession />} />
             <Route path="/chatwindow" element={<ChatWindow />} />
 
