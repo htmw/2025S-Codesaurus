@@ -1,5 +1,5 @@
 const express = require("express");
-const { saveLog, getAllLogs } = require("../controllers/logController");
+const { saveLog, getAllLogs, getLogsBySession } = require("../controllers/logController");
 
 const router = express.Router();
 
@@ -15,5 +15,8 @@ router.post("/logs", saveLog);
 
 //Get Logs from mongodb
 router.get("/logs", getAllLogs);
+
+//get logs by sessionID
+router.get("/logs/:sessionId", getLogsBySession);
 
 module.exports = router;

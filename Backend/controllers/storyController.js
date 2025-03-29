@@ -55,4 +55,24 @@ const getAllStories = async (req, res) => {
 
 };
 
-module.exports = { saveStory, getAllStories };
+// GET route to fetch all stories
+const getStoryById = async (req, res) => {
+    const { id } = req.params; // Extract story ID from URL parameters
+
+    try {
+        // Find the story by its ID
+        const story = await Story.findById(id).populate("themeId", "title");
+
+        if (!story) {
+            return res.status(404).json({ message: "Story not found" });
+        }
+
+        res.status(200).json(story);  // Return the found story as JSON
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+
+};
+
+
+module.exports = { saveStory, getAllStories, getStoryById };
