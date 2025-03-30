@@ -14,23 +14,6 @@ const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollR
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
 		
-		//get session of the game
-		const session = await GameSession.findById(sessionId);
-		//get story in game session
-		const story = await Story.findById(session.storyId).populate("npcIds");
-
-		//Filter Active NPCs
-		const activeNpcIds = session.npcStates
-		.filter(n => n.isActive)
-		.map(n => n.npcId.toString());
-		const activeNpcs = story.npcIds.filter(npc =>
-		activeNpcIds.includes(npc._id.toString())
-		);
-
-		const npcContext = activeNpcs.map(npc =>
-			`${npc.title} (${npc.role}): ${npc.description}`
-		).join("\n");
-
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
 Respond ONLY in this JSON format:
@@ -38,8 +21,6 @@ Respond ONLY in this JSON format:
   "requiresRoll": true | false,
   "threshold": number | null,
   "narration": "string ending with a question"
-  "activateNpc": ["npcTitle1", "npcTitle2"],
-  "deactivateNpc": ["npcTitle3"]
 }
 
 Rules:
@@ -48,14 +29,11 @@ Rules:
 - Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
 - Choose a threshold between 1-6 (inclusive) when rolling is necessary.
 - narration should be concise (2-3 sentences) and end with an open-ended question.
-- You may also activate or deactivate NPCs by including them in the "activateNpc" or "deactivateNpc" arrays.
-- Use NPC titles exactly as they appear in the NPCs context below.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
 
 NPCs present in the story: ${npcList}
 
-NPCs currently present in the scene: ${npcContext}
 
 ${diceRollResult ?
 				`The player's last action required a dice roll.
@@ -80,44 +58,7 @@ ${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
 		});
 
 		const content = response.choices[0].message.content;
-		const parsedResponse = JSON.parse(content);
-
-		//Toggling NPCs in GameSession
-		if (parsedResponse.activateNpc || parsedResponse.deactivateNpc) {
-			const session = await GameSession.findById(sessionId);
-			const story = await Story.findById(session.storyId).populate("npcIds");
-		//map title to object id for faster lookup
-			const npcMap = {};
-			story.npcIds.forEach(npc => {
-				npcMap[npc.title] = npc._id.toString();
-			});
-		//allowing gpt to toggle active
-			if (parsedResponse.activateNpc) {
-				for (const title of parsedResponse.activateNpc) {
-					const npcId = npcMap[title];//NPC ID by Title
-					if (npcId) {
-						//set specified NPC to active
-						const npcState = session.npcStates.find(n => n.npcId.toString() === npcId);
-						if (npcState) npcState.isActive = true;
-					}
-				}
-			}
-		//allowing gpt to toggle inactive
-			if (parsedResponse.deactivateNpc) {
-				for (const title of parsedResponse.deactivateNpc) {
-					const npcId = npcMap[title]; //NPC ID by Title
-					if (npcId) {
-						//set specified NPC to inactive
-						const npcState = session.npcStates.find(n => n.npcId.toString() === npcId);
-						if (npcState) npcState.isActive = false;
-					}
-				}
-			}
-		
-			await session.save();
-		}
-
-	return parsedResponse;
+		return JSON.parse(content);
 		
 	} catch (error) {
 		console.error("OpenAI API error:", error);
@@ -135,19 +76,12 @@ const startGame = async (req, res) => {
 
 	try {
 		const story = await Story.findById(storyId).populate("npcIds");
-		
-		const npcStates = story.npcIds.map(npc => ({
-			npcId: npc._id,
-			isActive: false // default
-		  }));
-		  
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
 		const storyState = `The adventure begins...\n${story.prompt}`
 		const session = new GameSession({
 			storyId,
 			storyState,
-			npcStates,
 		});
 
 		await session.save();
@@ -203,7 +137,8 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 	const npcList = story.npcIds.map(npc =>
         `${npc.title} (${npc.role}) - ${npc.description}`
     ).join(", ");
-
+	console.log('npcList: ', npcList);
+	
 	const narrationResponse = await generateNarration(playerChoice, session._id, storyPrompt, diceRollResult, npcList);
 
 	session.storyState = narrationResponse.narration;
