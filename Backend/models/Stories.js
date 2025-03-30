@@ -10,7 +10,8 @@ const storySchema = new mongoose.Schema({
     prompt: { type: String, required: true },  // Starting prompt for the AI
     narrator_tone: { type: String },  // Optional tone of the theme used for narration
     duration: { type: Number, required: true, min: 5 }, // Approximate duration in minutes until the Story ends
-    timestamp: { type: Date, default: Date.now } // Time - created_at
+    timestamp: { type: Date, default: Date.now }, // Time - created_at
+    requirements: { type: Array, default: [] }
 });
 
 module.exports = mongoose.model("Story", storySchema);
