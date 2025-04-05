@@ -41,6 +41,36 @@ function GameSessionPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    // Initialize success/failure counts in localStorage if they don't exist
+    useEffect(() => {
+        if (!localStorage.getItem('successCount')) {
+            localStorage.setItem('successCount', '0');
+        }
+        if (!localStorage.getItem('failureCount')) {
+            localStorage.setItem('failureCount', '0');
+        }
+    }, []);
+
+    // Function to update success/failure counts
+    const updateRollCounts = (message) => {
+        const successCount = parseInt(localStorage.getItem('successCount') || '0');
+        const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
+
+        console.log(message);
+
+        if (message.toLowerCase().includes('success')) {
+            localStorage.setItem('successCount', (successCount + 1).toString());
+        } else if (message.toLowerCase().includes('failure')) {
+            localStorage.setItem('failureCount', (failureCount + 1).toString());
+        }
+    };
+
+    // Function to reset counts when game ends
+    const resetRollCounts = () => {
+        localStorage.setItem('successCount', '0');
+        localStorage.setItem('failureCount', '0');
+    };
+
     const processNarrationText = (text) => {
         if (!text.includes('?')) return text;
 
@@ -57,16 +87,34 @@ function GameSessionPage() {
         return text;
     };
 
-    const determineGameResult = (message) => {
-        const isWin = message.toLowerCase().includes("success") ||
-            message.toLowerCase().includes("victory") ||
-            message.toLowerCase().includes("triumph");
-        return isWin ? 'win' : 'loss';
+    const determineGameResult = (data) => {
+        // Update counts based on the message
+        updateRollCounts(data.storyState);
+
+        // Get current counts
+        const successCount = parseInt(localStorage.getItem('successCount') || '0');
+        const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
+
+        // Determine win/loss based on success/failure ratio
+        // If there are more successes than failures, it's a win
+        if (data.requirementsMet) {
+            const isWin = successCount >= failureCount;
+
+            // Reset counts after determining result
+            resetRollCounts();
+
+            return isWin ? 'win' : 'loss';
+        } else {
+            resetRollCounts();
+            return 'loss';
+        }
     };
 
     const handleGameEnd = (result, narration) => {
         setGameResult(result);
         localStorage.removeItem("sessionId");
+        // localStorage.removeItem("successCount");
+        // localStorage.removeItem("failureCount");
         setSessionId(null);
         setIsCompleted(true);
         setIsDisabled(true);
@@ -174,7 +222,9 @@ function GameSessionPage() {
                 setIsDisabled(data.isCompleted);
 
                 if (data.isCompleted) {
-                    handleGameEnd(determineGameResult(data.storyState), data.storyState);
+                    console.log(data.requirementsMet);
+                    const endResult = determineGameResult(data);
+                    handleGameEnd(endResult, data.storyState);
                 }
             } else {
                 throw new Error("Failed to get AI response.");
@@ -202,9 +252,21 @@ function GameSessionPage() {
             });
 
             const data = await response.json();
+            console.log(JSON.stringify(data));
 
             if (response.ok) {
                 setDiceValue(data.diceRoll); // Update dice face
+                console.log(data.success);
+
+                // Update success/failure counts based on the dice roll result
+                if (data.success) {
+                    const successCount = parseInt(localStorage.getItem('successCount') || '0');
+                    localStorage.setItem('successCount', (successCount + 1).toString());
+                } else {
+                    const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
+                    localStorage.setItem('failureCount', (failureCount + 1).toString());
+                }
+
                 setMessages(prev => [
                     ...prev,
                     { sender: "player", text: data.diceUserMessage },

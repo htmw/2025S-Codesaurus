@@ -20,7 +20,7 @@ Respond ONLY in this JSON format:
 {
   "requiresRoll": true | false,
   "threshold": number | null,
-  "narration": "string ending with a question",
+  "narration": "string ending with a question unless "End of Game" is true",
   "End of Game": true | false
 }
 
@@ -30,8 +30,10 @@ Rules:
 - Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
 - Choose a threshold between 1-6 (inclusive) when rolling is necessary.
 - narration should be concise (2-3 sentences) and end with an open-ended question.
-- Set "End of Game": true and generate the ending narration without a question mark ONLY IN THIS CASE if ALL of these requirements have been met even if things in the past logs sound remotely similar in the player's choices so far: ${JSON.stringify(requirements)}.
-- Try to guide the player to eventually meet all the requirements from the beginning itself as required in this: ${JSON.stringify(requirements)}.
+- Set "End of Game": true and generate the ending narration without a question mark and suitable for ending the game ONLY IN THIS CASE if anything in the past logs seem even slightly similar to meeting these following requirements: ${JSON.stringify(requirements)}.
+- Try to guide the player to eventually meet the requirement from the beginning itself in every response as required in this: ${JSON.stringify(requirements)}.
+- Make sure when you read the player choices in every response you are very senstive the the player's choices and consider the game as ended even if the choices very slightly resemble the requirements.
+- Whenever you decide to set "End of Game": true, make sure the "narration" is suitable for ending the game.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
 
@@ -145,6 +147,9 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 	const logCount = await Log.countDocuments({ sessionId: session._id });
 	console.log(narrationResponse["End of Game"]);
 	if (narrationResponse["End of Game"] || playerChoice?.toLowerCase().includes("escape") || logCount >= 10) {
+		if (narrationResponse["End of Game"]) {
+			session.requirementsMet = true;
+		}
 		session.isCompleted = true;
 		session.endingState = `The journey ends here... ${narrationResponse.narration}`;
 	}
@@ -161,7 +166,8 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 		storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
 		requiresRoll: narrationResponse.requiresRoll,
 		threshold: narrationResponse.threshold,
-		isCompleted: session.isCompleted
+		isCompleted: session.isCompleted,
+		requirementsMet: session.requirementsMet
 	};
 };
 
