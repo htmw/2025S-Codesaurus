@@ -11,8 +11,7 @@ const API_BASE_URL = "http://localhost:8081/api";
 
 function GameSessionPage() {
     const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const storyId = queryParams.get("story");
+    const storyId = location.state.story;
 
     const [sessionId, setSessionId] = useState(localStorage.getItem("sessionId"));
     const [loading, setLoading] = useState(true);
@@ -30,11 +29,7 @@ function GameSessionPage() {
     const [isDisabled, setIsDisabled] = useState(false);
 
     useEffect(() => {
-        if (!sessionId) {
-            startGame();
-        } else {
-            fetchMessageHistory(sessionId);
-        }
+        fetchMessageHistory(sessionId);
     }, [storyId]);
 
     useEffect(() => {

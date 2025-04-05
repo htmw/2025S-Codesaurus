@@ -1,13 +1,13 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button, Card } from "react-bootstrap";
-import "./StoryPage.css"; 
+import "./StoryPage.css";
 import NPCView from "../NPCView/NPCView";
 
 const StoryPage = () => {
     const [stories, setStories] = useState([]);
     const [selectedStory, setSelectedStory] = useState(null);
-    const location = useLocation(); 
+    const location = useLocation();
     const navigate = useNavigate();
 
     const API_BASE_URL = "http://localhost:8081/api";
@@ -34,13 +34,9 @@ const StoryPage = () => {
     };
 
     const handleContinue = () => {
-        // if (selectedStory) {
-        //     navigate(`/gameSession?story=${selectedStory._id}`);
-        // }
         if (selectedStory) {
-            sessionStorage.setItem("selectedStory", JSON.stringify(selectedStory));
-            navigate(`/character`);
-          }
+            navigate("/character", { state: { story: selectedStory._id } });
+        }
     };
 
     return (
@@ -52,8 +48,8 @@ const StoryPage = () => {
                     {filteredStories.length > 0 ? (
                         filteredStories.map((story) => (
                             <Col key={story._id} xs={12} sm={6} md={4} lg={3}>
-                                <Card 
-                                    className={`story-card ${selectedStory?._id === story._id ? "selected" : ""}`} 
+                                <Card
+                                    className={`story-card ${selectedStory?._id === story._id ? "selected" : ""}`}
                                     onClick={() => handleStorySelect(story)}
                                 >
                                     <Card.Body>

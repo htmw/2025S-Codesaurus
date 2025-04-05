@@ -1,40 +1,50 @@
 const mongoose = require("mongoose");
 const Character = require("../models/Character");
 
+const createCharacterInDB = async ({ name, race, characterClass, background, stats, gameSessionId }) => {
+    if (!name || !race || !characterClass || !background || !stats) {
+        throw new Error("All fields are required");
+    }
+
+    const sessionObjectId =
+        gameSessionId && mongoose.Types.ObjectId.isValid(gameSessionId)
+            ? new mongoose.Types.ObjectId(gameSessionId)
+            : null;
+
+    if (gameSessionId && !sessionObjectId) {
+        throw new Error("Invalid gameSessionId format");
+    }
+
+    const newCharacter = new Character({
+        name,
+        race,
+        class: characterClass,
+        background,
+        stats,
+        gameSessionId: sessionObjectId,
+    });
+
+    await newCharacter.save();
+    return newCharacter;
+};
+
 const createCharacter = async (req, res) => {
     try {
         const { name, race, class: characterClass, background, stats, gameSessionId } = req.body;
 
-        // Validate required fields
-        if (!name || !race || !characterClass || !background || !stats) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        // Ensure gameSessionId is a valid ObjectId if provided
-        const sessionObjectId = (gameSessionId && mongoose.Types.ObjectId.isValid(gameSessionId))
-            ? new mongoose.Types.ObjectId(gameSessionId)
-            : null;
-
-        if (gameSessionId && !sessionObjectId) {
-            return res.status(400).json({ message: "Invalid gameSessionId format" });
-        }
-
-        // Create and save the character
-        const newCharacter = new Character({ 
-            name, 
-            race, 
-            class: characterClass, 
-            background, 
+        const newCharacter = await createCharacterInDB({
+            name,
+            race,
+            characterClass,
+            background,
             stats,
-            gameSessionId: sessionObjectId
+            gameSessionId,
         });
 
-        await newCharacter.save();
         res.status(201).json({ message: "Character created successfully", character: newCharacter });
-
     } catch (error) {
         console.error("Error creating character:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(400).json({ message: error.message || "Internal server error" });
     }
 };
 
@@ -91,5 +101,6 @@ const getCharacterByName = async (req, res) => {
 module.exports = {
     createCharacter,
     getCharacters,
-    getCharacterByName
+    getCharacterByName,
+    createCharacterInDB
 };

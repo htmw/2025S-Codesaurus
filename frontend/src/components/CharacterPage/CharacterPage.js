@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Container, Form, Row, Col, Button, Card } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
+
+const API_BASE_URL = "http://localhost:8081/api";
 
 const CharacterPage = () => {
   const [character, setCharacter] = useState({
@@ -18,8 +20,8 @@ const CharacterPage = () => {
       charisma: "",
     },
   });
-
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,10 +40,39 @@ const CharacterPage = () => {
     }
   };
 
-  const handleSubmit = () => {
-    sessionStorage.setItem("selectedCharacter", JSON.stringify(character));
-    navigate("/gameSession");
+  const handleSubmit = async () => {
+    try {
+      const storyId = location.state.story
+      if (!storyId) {
+        alert("No story selected."); // TODO: toast message
+        return;
+      }
+
+      const gameRes = await fetch(`${API_BASE_URL}/start-game`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ storyId, character }),
+      });
+
+      const gameData = await gameRes.json();
+
+      if (!gameRes.ok) {
+        alert(gameData.message || "Failed to start game.");
+        return;
+      }
+
+      localStorage.setItem("sessionId", gameData.sessionId);
+
+      // STEP 4: Navigate to game session with storyId as query param
+      navigate(`/gameSession?story=${storyId}`, { state: { story: storyId } });
+    } catch (error) {
+      console.error("Error during submission:", error);
+      alert("Something went wrong. Please try again.");
+    }
   };
+
 
   return (
     <Container className="theme-page" fluid>
@@ -126,6 +157,7 @@ const CharacterPage = () => {
       <Button
         variant="warning"
         className="continue-button"
+        onClick={() => handleSubmit()}
       >
         Continue
       </Button>

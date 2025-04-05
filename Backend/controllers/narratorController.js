@@ -2,7 +2,8 @@ require("dotenv").config();
 const { OpenAI } = require("openai");
 const GameSession = require("../models/GameSession");
 const Log = require("../models/Logs");
-const Story = require('../models/Stories')
+const Story = require('../models/Stories');
+const { createCharacterInDB } = require("./characterController");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -13,7 +14,7 @@ const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollR
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
-		
+
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
 Respond ONLY in this JSON format:
@@ -64,7 +65,7 @@ ${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
 
 		const content = response.choices[0].message.content;
 		return JSON.parse(content);
-		
+
 	} catch (error) {
 		console.error("OpenAI API error:", error);
 		return {
@@ -76,31 +77,48 @@ ${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
 };
 
 const startGame = async (req, res) => {
-	const { storyId } = req.body;
+	const { storyId, character } = req.body;
 	if (!storyId) return res.status(400).json({ message: "Missing story ID." });
+	if (!character) return res.status(400).json({ message: "Missing character details." });
 
 	try {
 		const story = await Story.findById(storyId).populate("npcIds");
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
-		const storyState = `The adventure begins...\n${story.prompt}`
+		// Step 1: Create Character
+		const newCharacter = await createCharacterInDB({
+			name: character.name,
+			race: character.race,
+			characterClass: character.class,
+			background: character.background,
+			stats: character.stats,
+		});
+
+		// Step 2: Create Game Session
+		const storyState = `The adventure begins...\n${story.prompt}`;
 		const session = new GameSession({
 			storyId,
 			storyState,
 		});
-
 		await session.save();
 
+		// Step 3: Link character to session
+		newCharacter.gameSessionId = session._id;
+		await newCharacter.save(); // update character with sessionId
+
+		// Step 4: Create initial log
 		await Log.create({
 			sessionId: session._id.toString(),
 			context: storyState,
-			userInput: null
+			userInput: null,
 		});
 
+		// Step 5: Respond
 		res.json({
 			message: `Game started: ${story.title}`,
 			sessionId: session._id.toString(),
 			storyState: session.storyState,
+			characterId: newCharacter._id,
 		});
 	} catch (err) {
 		console.error("Server Error:", err);
@@ -136,15 +154,15 @@ const playTurn = async (req, res) => {
 
 const processNarration = async ({ session, storyPrompt, playerChoice = null, diceRollResult = null }) => {
 	// TODO: why does generateNarration need storyPrompt?
-	
+
 	//Accepting NPCs
 	const story = await Story.findById(session.storyId).populate("npcIds");
-	
+
 	const npcList = story.npcIds.map(npc =>
-        `${npc.title} (${npc.role}) - ${npc.description}`
-    ).join(", ");
+		`${npc.title} (${npc.role}) - ${npc.description}`
+	).join(", ");
 	console.log('npcList: ', npcList);
-	
+
 	const narrationResponse = await generateNarration(
 		playerChoice,
 		session._id,
@@ -152,7 +170,6 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 		diceRollResult,
 		npcList,
 		story.requirements
-		
 	);
 
 	session.storyState = narrationResponse.narration;
