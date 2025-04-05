@@ -1,133 +1,130 @@
 /* Background image */
 .theme-page {
-    position: relative;
-    height: 100vh;
-    background-image: url("/public/images/background.png");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  /* Header Title - Positioned on Top Right */
-  .theme-header {
-    position: absolute;
-    top: 20px;
-    left: 40px;
-    font-size: 1.5rem;
-    color: #FFD966;
-    font-weight: bold;
-  }
-  
-  /* Theme container for images */
-  .theme-container {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-  }
-  
-  /* Individual theme options */
-  .theme-option {
-    text-align: center;
-    cursor: pointer;
-    transition: transform 0.3s ease-in-out;
-  }
-  
-  .theme-option img {
-    width: 225px;
-    height: 425px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    transition: border 0.3s ease-in-out, transform 0.3s ease-in-out;
-  }
-  
-  /* Highlight selected theme */
-  .theme-option.selected img {
-    border: 2px solid #FFFFFF;
-    transform: scale(1.1);
-  }
-  
-  /* Theme text below the image */
-  .theme-option p {
-    color: white;
-    font-size: 1.2rem;
-    margin-top: 20px;
-  }
-  
-  /* Continue Button - Positioned Bottom Right */
-  .continue-button {
-    position: absolute;
-    bottom: 20px;
-    right: 40px;
-    padding: 10px 20px;
-    font-size: 1.2rem;
-    border: none;
-    background-color: #FFD966;
-    color: black;
-    border-radius: 100px;
-    cursor: pointer;
-    transition: 0.3s;
-  }
-  
-  .continue-button:hover {
-    background-color: #ffa500;
-  }
-  
-  .continue-button:disabled {
-    background-color: rgba(128, 128, 128, 0.663);
-    cursor: not-allowed;
-  }
+	position: relative;
+	height: 100vh;
+	background-image: url('/public/images/background.png');
+	background-size: cover;
+	background-position: center;
+	background-attachment: fixed;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
 
-  .character-form {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-top: 40px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 30px;
-    border-radius: 10px;
-  }
-  
-  .character-form h2,
-  .character-form h4 {
-    color: #FFD966;
-    margin-bottom: 10px;
-  }
-  
-  .input-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
-  }
-  
-  .character-form input {
-    padding: 8px 10px;
-    border-radius: 5px;
-    border: none;
-    min-width: 150px;
-  }
-  
-  .create-button {
-    align-self: flex-end;
-    padding: 12px 30px;
-    font-size: 1.1rem;
-    white-space: nowrap;
-    width: fit-content;
-    text-align: center;
-    display: inline-block;
-    margin-top: 10px;
-  }
-  
-  .character-form label {
-    color: #FFD966;
-    display: flex;
-    flex-direction: column;
-    font-weight: 500;
-  }
-  
-  
-  
+/* Header Title - Positioned on Top Right */
+.theme-header {
+	position: absolute;
+	top: 20px;
+	left: 40px;
+	font-size: 1.5rem;
+	color: #ffd966;
+	font-weight: bold;
+}
+
+/* Theme container for images */
+.theme-container {
+	display: flex;
+	justify-content: center;
+	gap: 20px;
+}
+
+/* Individual theme options */
+.theme-option {
+	text-align: center;
+	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
+}
+
+.theme-option img {
+	width: 225px;
+	height: 425px;
+	border-radius: 10px;
+	border: 2px solid transparent;
+	transition: border 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+/* Highlight selected theme */
+.theme-option.selected img {
+	border: 2px solid #ffffff;
+	transform: scale(1.1);
+}
+
+/* Theme text below the image */
+.theme-option p {
+	color: white;
+	font-size: 1.2rem;
+	margin-top: 20px;
+}
+
+/* Continue Button - Positioned Bottom Right */
+.continue-button {
+	position: absolute;
+	bottom: 20px;
+	right: 40px;
+	padding: 10px 20px;
+	font-size: 1.2rem;
+	border: none;
+	background-color: #ffd966;
+	color: black;
+	border-radius: 100px;
+	cursor: pointer;
+	transition: 0.3s;
+}
+
+.continue-button:hover {
+	background-color: #ffa500;
+}
+
+.continue-button:disabled {
+	background-color: rgba(128, 128, 128, 0.663);
+	cursor: not-allowed;
+}
+
+.character-form {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	margin-top: 40px;
+	background: rgba(0, 0, 0, 0.5);
+	padding: 30px;
+	border-radius: 10px;
+}
+
+.character-form h2,
+.character-form h4 {
+	color: #ffd966;
+	margin-bottom: 10px;
+}
+
+.input-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 15px;
+}
+
+.character-form input {
+	padding: 8px 10px;
+	border-radius: 5px;
+	border: none;
+	min-width: 150px;
+}
+
+.create-button {
+	align-self: flex-end;
+	padding: 12px 30px;
+	font-size: 1.1rem;
+	white-space: nowrap;
+	width: fit-content;
+	text-align: center;
+	display: inline-block;
+	margin-top: 10px;
+}
+
+.character-form label {
+	color: #ffd966;
+	display: flex;
+	flex-direction: column;
+	font-weight: 500;
+}
