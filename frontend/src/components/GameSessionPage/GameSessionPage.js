@@ -20,11 +20,13 @@ function GameSessionPage() {
     const [messages, setMessages] = useState([]);
     const [playerInput, setPlayerInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
+    const [gameResult, setGameResult] = useState(null); // 'win' or 'loss'
     const messagesEndRef = useRef(null);
 
     const [requiresRoll, setRequiresRoll] = useState(false);
     const [rolling, setRolling] = useState(false);
     const [diceValue, setDiceValue] = useState(1);
+    const [isCompleted, setIsCompleted] = useState(false);
     const [isDisabled, setIsDisabled] = useState(false);
 
     useEffect(() => {
@@ -38,6 +40,95 @@ function GameSessionPage() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+    // Initialize success/failure counts in localStorage if they don't exist
+    useEffect(() => {
+        if (!localStorage.getItem('successCount')) {
+            localStorage.setItem('successCount', '0');
+        }
+        if (!localStorage.getItem('failureCount')) {
+            localStorage.setItem('failureCount', '0');
+        }
+    }, []);
+
+    // Function to update success/failure counts
+    const updateRollCounts = (message) => {
+        const successCount = parseInt(localStorage.getItem('successCount') || '0');
+        const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
+
+        console.log(message);
+
+        if (message.toLowerCase().includes('success')) {
+            localStorage.setItem('successCount', (successCount + 1).toString());
+        } else if (message.toLowerCase().includes('failure')) {
+            localStorage.setItem('failureCount', (failureCount + 1).toString());
+        }
+    };
+
+    // Function to reset counts when game ends
+    const resetRollCounts = () => {
+        localStorage.setItem('successCount', '0');
+        localStorage.setItem('failureCount', '0');
+    };
+
+    const processNarrationText = (text) => {
+        if (!text.includes('?')) return text;
+
+        // Split by periods and get the last sentence
+        const sentences = text.split('.');
+        const lastSentence = sentences[sentences.length - 1].trim();
+
+        // If the last sentence contains a question mark, remove it
+        if (lastSentence.includes('?')) {
+            // Join all sentences except the last one
+            return sentences.slice(0, -1).join('.').trim() + '.';
+        }
+
+        return text;
+    };
+
+    const determineGameResult = (data) => {
+        // Update counts based on the message
+        updateRollCounts(data.storyState);
+
+        // Get current counts
+        const successCount = parseInt(localStorage.getItem('successCount') || '0');
+        const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
+
+        // Determine win/loss based on success/failure ratio
+        // If there are more successes than failures, it's a win
+        if (data.requirementsMet) {
+            const isWin = successCount >= failureCount;
+
+            // Reset counts after determining result
+            resetRollCounts();
+
+            return isWin ? 'win' : 'loss';
+        } else {
+            resetRollCounts();
+            return 'loss';
+        }
+    };
+
+    const handleGameEnd = (result, narration) => {
+        setGameResult(result);
+        localStorage.removeItem("sessionId");
+        // localStorage.removeItem("successCount");
+        // localStorage.removeItem("failureCount");
+        setSessionId(null);
+        setIsCompleted(true);
+        setIsDisabled(true);
+
+        // Update the last message with processed narration
+        setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage && lastMessage.sender === "narrator") {
+                lastMessage.text = processNarrationText(narration);
+            }
+            return newMessages;
+        });
+    };
 
     const startGame = async () => {
         if (!storyId) {
@@ -88,7 +179,14 @@ function GameSessionPage() {
                 ]).flat().filter(msg => msg.text);
 
                 setMessages(formattedMessages);
-                setRequiresRoll(data.requiresRoll); // update dice state
+                setRequiresRoll(data.requiresRoll); //update dice state
+                setIsCompleted(data.isCompleted); //Set game completion state
+                setIsDisabled(data.isCompleted); //Disable input if game is completed
+
+                if (data.isCompleted) {
+                    const lastMessage = formattedMessages[formattedMessages.length - 1]?.text || "";
+                    handleGameEnd(determineGameResult(lastMessage), lastMessage);
+                }
             } else {
                 throw new Error("Failed to fetch game state.");
             }
@@ -99,9 +197,8 @@ function GameSessionPage() {
         }
     };
 
-
     const handleSendMessage = async () => {
-        if (!playerInput.trim() || !sessionId) return;
+        if (!playerInput.trim() || !sessionId || isCompleted) return;
 
         const userMessage = { sender: "player", text: playerInput };
         setMessages((prev) => [...prev, userMessage]);
@@ -121,6 +218,14 @@ function GameSessionPage() {
                 const aiMessage = { sender: "narrator", text: data.storyState };
                 setMessages((prev) => [...prev, aiMessage]);
                 setRequiresRoll(data.requiresRoll || false);
+                setIsCompleted(data.isCompleted);
+                setIsDisabled(data.isCompleted);
+
+                if (data.isCompleted) {
+                    console.log(data.requirementsMet);
+                    const endResult = determineGameResult(data);
+                    handleGameEnd(endResult, data.storyState);
+                }
             } else {
                 throw new Error("Failed to get AI response.");
             }
@@ -135,7 +240,6 @@ function GameSessionPage() {
         }
     };
 
-
     const handleRoll = async () => {
         if (rolling) return;
         if (!sessionId) return;
@@ -148,9 +252,21 @@ function GameSessionPage() {
             });
 
             const data = await response.json();
+            console.log(JSON.stringify(data));
 
             if (response.ok) {
                 setDiceValue(data.diceRoll); // Update dice face
+                console.log(data.success);
+
+                // Update success/failure counts based on the dice roll result
+                if (data.success) {
+                    const successCount = parseInt(localStorage.getItem('successCount') || '0');
+                    localStorage.setItem('successCount', (successCount + 1).toString());
+                } else {
+                    const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
+                    localStorage.setItem('failureCount', (failureCount + 1).toString());
+                }
+
                 setMessages(prev => [
                     ...prev,
                     { sender: "player", text: data.diceUserMessage },
@@ -159,6 +275,10 @@ function GameSessionPage() {
                 setTimeout(() => {
                     setRequiresRoll(data.requiresRoll);
                 }, 4000);
+
+                if (data.isCompleted) {
+                    handleGameEnd(determineGameResult(data.storyState), data.storyState);
+                }
             } else {
                 throw new Error("Dice roll failed");
             }
@@ -177,6 +297,12 @@ function GameSessionPage() {
         <Container fluid className="game-container">
             <Container fluid className="chat-container">
                 <h2 className="chat-header">Let's Play!</h2>
+
+                {gameResult && (
+                    <div className={`game-result ${gameResult}`}>
+                        {gameResult === 'win' ? '🎉 Victory!' : '💀 Game Over'}
+                    </div>
+                )}
 
                 <div className="message-area">
                     {messages.map((msg, index) => {
@@ -213,16 +339,16 @@ function GameSessionPage() {
                 <InputGroup className="chat-input">
                     <Form.Control
                         type="text"
-                        placeholder={requiresRoll ? "Roll the dice..." : "Make your move..."}
+                        placeholder={isCompleted ? "Game Over" : requiresRoll ? "Roll the dice..." : "Make your move..."}
                         value={playerInput}
                         onChange={(e) => setPlayerInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !requiresRoll && handleSendMessage()}
-                        disabled={loading || isTyping || requiresRoll}
+                        onKeyDown={(e) => e.key === "Enter" && !requiresRoll && !isCompleted && handleSendMessage()}
+                        disabled={loading || isTyping || requiresRoll || isCompleted}
                         className="chat-input-field"
                     />
 
                     <AnimatePresence mode="wait">
-                        {requiresRoll ? (
+                        {requiresRoll && !isCompleted ? (
                             <motion.div
                                 key="dice"
                                 initial={{ opacity: 1, scale: 1 }}
@@ -232,7 +358,7 @@ function GameSessionPage() {
                             >
                                 <DiceRoller value={diceValue} rolling={rolling} onRoll={handleRoll} size={30} />
                             </motion.div>
-                        ) : (
+                        ) : !isCompleted ? (
                             <motion.div
                                 key="send"
                                 initial={{ opacity: 0, scale: 0.8 }}
@@ -244,11 +370,9 @@ function GameSessionPage() {
                                     <FaPaperPlane size={18} />
                                 </Button>
                             </motion.div>
-                        )}
+                        ) : null}
                     </AnimatePresence>
-
                 </InputGroup>
-
             </Container>
         </Container>
     );

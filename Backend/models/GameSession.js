@@ -7,7 +7,8 @@ const gameSessionSchema = new mongoose.Schema({
 	endingState: { type: String, default: null },
 	requiresRoll: { type: Boolean, default: false },
 	rollThreshold: { type: Number, default: null },
-	createdAt: { type: Date, default: Date.now }
+	createdAt: { type: Date, default: Date.now },
+	requirementsMet: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model("GameSession", gameSessionSchema);
