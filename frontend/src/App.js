@@ -8,6 +8,7 @@ import StoryPage from "./components/StoryPage/StoryPage";
 import GameSession from "./components/GameSessionPage/GameSessionPage"
 import ChatWindow from './components/ChatWindow/chat-window';
 import CharacterPage from "./components/CharacterPage/CharacterPage";
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
 function App() {

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Container, Form, Row, Col, Button, Card } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 const API_BASE_URL = "http://localhost:8081/api";
 

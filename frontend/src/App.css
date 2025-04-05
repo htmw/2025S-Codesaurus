@@ -40,3 +40,15 @@
 .card {
 	background-color: #0a2d35 !important;
 }
+
+/* Continue Button - Positioned Bottom Right */
+.continue-button {
+	position: absolute;
+	bottom: 20px;
+	right: 40px;
+	padding: 10px 20px !important;
+	font-size: 1.2rem !important;
+	border: none !important;
+	border-radius: 100px !important;
+	transition: 0.3s !important;
+}

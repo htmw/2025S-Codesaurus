@@ -1,19 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
-import "./ThemePage.css"; 
+import "./ThemePage.css";
 
 
 const ThemePage = () => {
-    const [themes, setThemes] = useState([]);
-    const [selectedTheme, setSelectedTheme] = useState(null);
-    const navigate = useNavigate();
+  const [themes, setThemes] = useState([]);
+  const [selectedTheme, setSelectedTheme] = useState(null);
+  const navigate = useNavigate();
 
-    const API_BASE_URL = "http://localhost:8081/api";
-  
-    // Fetch themes from the backend when the component mounts
-    useEffect(() => {
-        fetch(`${API_BASE_URL}/themes`)
+  const API_BASE_URL = "http://localhost:8081/api";
+
+  // Fetch themes from the backend when the component mounts
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/themes`)
       .then((res) => res.json())
       .then((data) => {
         console.log("Fetched themes:", data);
@@ -21,28 +21,28 @@ const ThemePage = () => {
       })
       .catch((error) => console.error("Error fetching themes:", error));
   }, []);
-  
-    // Handle theme selection
-    const handleThemeSelect = (theme) => {
-      setSelectedTheme(theme);
-    };
-  
-    // Navigate to the stories page with the selected theme
-    const handleContinue = () => {
-      if (selectedTheme) {
-        // navigate(`/stories?theme=${selectedTheme._id}`);
-        sessionStorage.setItem("selectedTheme", JSON.stringify(selectedTheme));
-        navigate(`/stories?theme=${selectedTheme._id}`);
-      }
-    };
-  
-    return (
-      <Container className="theme-page" fluid>
-        {/* Header */}
-        <h1 className="theme-header">Choose Your Adventure</h1>
+
+  // Handle theme selection
+  const handleThemeSelect = (theme) => {
+    setSelectedTheme(theme);
+  };
+
+  // Navigate to the stories page with the selected theme
+  const handleContinue = () => {
+    if (selectedTheme) {
+      // navigate(`/stories?theme=${selectedTheme._id}`);
+      sessionStorage.setItem("selectedTheme", JSON.stringify(selectedTheme));
+      navigate(`/stories?theme=${selectedTheme._id}`);
+    }
+  };
+
+  return (
+    <Container className="theme-page" fluid>
+      {/* Header */}
+      <h1 className="theme-header">Choose Your Adventure</h1>
 
 
-        {/* Theme Options with grid layout */}
+      {/* Theme Options with grid layout */}
       <Container fluid>
         <Row className="theme-container">
           {themes.map((theme) => (
@@ -62,15 +62,15 @@ const ThemePage = () => {
           ))}
         </Row>
       </Container>
-  
-      <Button variant="primary" className="continue-button"
+
+      <Button variant="warning" className="continue-button"
         onClick={handleContinue} disabled={!selectedTheme} >
         Continue
       </Button>
 
-      </Container>
-    );
-  };
-  
+    </Container>
+  );
+};
+
 
 export default ThemePage;

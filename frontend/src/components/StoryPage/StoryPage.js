@@ -71,7 +71,7 @@ const StoryPage = () => {
             )}
 
             <Button
-                variant="primary"
+                variant="warning"
                 className="continue-button"
                 onClick={handleContinue}
                 disabled={!selectedStory}
