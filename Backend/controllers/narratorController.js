@@ -7,7 +7,7 @@ const Character = require("../models/Character");
 const { createCharacterInDB } = require("./characterController");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
+const MAX_ITERATIONS = 3;
 /**
  * AI Narrator Function - Generates AI narration based on past choices
  */
@@ -15,6 +15,7 @@ const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollR
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
+		const shouldForceEnd = logs.length >= MAX_ITERATIONS;
 
 		const character = await Character.findOne({ gameSessionId: sessionId });
 
@@ -57,8 +58,16 @@ Rules:
 - Try to guide the player to eventually meet the requirement from the beginning itself in every response as required in this: ${JSON.stringify(requirements)}.
 - Make sure when you read the player choices in every response you are very senstive the the player's choices and consider the game as ended even if the choices very slightly resemble the requirements.
 - Whenever you decide to set "End of Game": true, make sure the "narration" is suitable for ending the game.
+- NPCs must only be mentioned or referenced if they were already introduced to the player earlier in the story or are contextually entering the scene for the first time.
+- Do NOT assume the player already knows who an NPC is unless the NPC was described or interacted with earlier.
+- When introducing a new NPC for the first time, clearly state their name, role, and basic description in the narration.
+- Avoid using phrases like "as you already know" or referring to past interactions with NPCs that did not actually happen.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
+${shouldForceEnd ? `
+- This story has gone on for too long without resolution. You MUST end the game now with a loss for the player.
+- Set "End of Game": true and write a graceful defeat narration without a question mark.
+- Do not give the player another choice or prompt.` : ""}
 
 NPCs present in the story: ${npcList}
 
@@ -202,12 +211,12 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 
 	const logCount = await Log.countDocuments({ sessionId: session._id });
 	console.log(narrationResponse["End of Game"]);
-	if (narrationResponse["End of Game"] || playerChoice?.toLowerCase().includes("escape") || logCount >= 10) {
+	if (narrationResponse["End of Game"] || playerChoice?.toLowerCase().includes("escape") || logCount >= MAX_ITERATIONS) {
 		if (narrationResponse["End of Game"]) {
 			session.requirementsMet = true;
 		}
 		session.isCompleted = true;
-		session.endingState = `The journey ends here... ${narrationResponse.narration}`;
+		session.endingState = `${narrationResponse.narration}`;
 	}
 
 	await session.save();
