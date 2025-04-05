@@ -18,7 +18,7 @@ function App() {
       <div className="app-wrapper">
 
         {/* Home Screen */}
-        <Container className="home-screen" fluid>
+        <Container className="home-screen p-0" fluid>
           <Routes>
             {/* Default Route */}
 

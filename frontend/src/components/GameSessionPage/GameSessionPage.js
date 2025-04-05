@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Container, Form, InputGroup, Button } from "react-bootstrap";
 import { FaPaperPlane } from "react-icons/fa";
 import Typewriter from "../UIComponent/Typewriter";
@@ -11,6 +11,8 @@ const API_BASE_URL = "http://localhost:8081/api";
 
 function GameSessionPage() {
     const location = useLocation();
+    const navigate = useNavigate();
+
     const storyId = location.state.story;
 
     const [sessionId, setSessionId] = useState(localStorage.getItem("sessionId"));
@@ -38,6 +40,9 @@ function GameSessionPage() {
 
     // Initialize success/failure counts in localStorage if they don't exist
     useEffect(() => {
+        if (!localStorage.getItem('sessionId')) {
+            navigate("/",);
+        }
         if (!localStorage.getItem('successCount')) {
             localStorage.setItem('successCount', '0');
         }
