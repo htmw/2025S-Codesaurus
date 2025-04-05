@@ -125,38 +125,6 @@ function GameSessionPage() {
         });
     };
 
-    const startGame = async () => {
-        if (!storyId) {
-            setError("No story selected.");
-            setLoading(false);
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/start-game`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ storyId }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                localStorage.setItem("sessionId", data.sessionId);
-                setSessionId(data.sessionId);
-                setMessages([{ sender: "narrator", text: data.storyState }]);
-            } else {
-                throw new Error(data.message || "Failed to start game.");
-            }
-        } catch (err) {
-            setError("Server error. Please try again.");
-            console.error("Error:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const fetchMessageHistory = async (sessionId) => {
         try {
             setLoading(true);
