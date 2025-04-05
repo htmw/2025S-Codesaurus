@@ -9,18 +9,18 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 /**
  * AI Narrator Function - Generates AI narration based on past choices
  */
-const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollResult = null, requirements = []) => {
+const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollResult = null, npcList = "", requirements = []) => {
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
-
+		
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
 Respond ONLY in this JSON format:
 {
   "requiresRoll": true | false,
   "threshold": number | null,
-  "narration": "string ending with a question",
+  "narration": "string ending with a question unless "End of Game" is true",
   "End of Game": true | false
 }
 
@@ -30,10 +30,15 @@ Rules:
 - Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
 - Choose a threshold between 1-6 (inclusive) when rolling is necessary.
 - narration should be concise (2-3 sentences) and end with an open-ended question.
-- Set "End of Game": true and generate the ending narration without a question mark ONLY IN THIS CASE if ALL of these requirements have been met even if things in the past logs sound remotely similar in the player's choices so far: ${JSON.stringify(requirements)}.
-- Try to guide the player to eventually meet all the requirements from the beginning itself as required in this: ${JSON.stringify(requirements)}.
+- Set "End of Game": true and generate the ending narration without a question mark and suitable for ending the game ONLY IN THIS CASE if anything in the past logs seem even slightly similar to meeting these following requirements: ${JSON.stringify(requirements)}.
+- Try to guide the player to eventually meet the requirement from the beginning itself in every response as required in this: ${JSON.stringify(requirements)}.
+- Make sure when you read the player choices in every response you are very senstive the the player's choices and consider the game as ended even if the choices very slightly resemble the requirements.
+- Whenever you decide to set "End of Game": true, make sure the "narration" is suitable for ending the game.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
+
+NPCs present in the story: ${npcList}
+
 
 ${diceRollResult ?
 				`The player's last action required a dice roll.
@@ -59,6 +64,7 @@ ${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
 
 		const content = response.choices[0].message.content;
 		return JSON.parse(content);
+		
 	} catch (error) {
 		console.error("OpenAI API error:", error);
 		return {
@@ -74,7 +80,7 @@ const startGame = async (req, res) => {
 	if (!storyId) return res.status(400).json({ message: "Missing story ID." });
 
 	try {
-		const story = await Story.findById(storyId);
+		const story = await Story.findById(storyId).populate("npcIds");
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
 		const storyState = `The adventure begins...\n${story.prompt}`
@@ -129,13 +135,24 @@ const playTurn = async (req, res) => {
 };
 
 const processNarration = async ({ session, storyPrompt, playerChoice = null, diceRollResult = null }) => {
-	const story = await Story.findById(session.storyId);
+	// TODO: why does generateNarration need storyPrompt?
+	
+	//Accepting NPCs
+	const story = await Story.findById(session.storyId).populate("npcIds");
+	
+	const npcList = story.npcIds.map(npc =>
+        `${npc.title} (${npc.role}) - ${npc.description}`
+    ).join(", ");
+	console.log('npcList: ', npcList);
+	
 	const narrationResponse = await generateNarration(
 		playerChoice,
 		session._id,
 		storyPrompt,
 		diceRollResult,
+		npcList,
 		story.requirements
+		
 	);
 
 	session.storyState = narrationResponse.narration;
@@ -145,6 +162,9 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 	const logCount = await Log.countDocuments({ sessionId: session._id });
 	console.log(narrationResponse["End of Game"]);
 	if (narrationResponse["End of Game"] || playerChoice?.toLowerCase().includes("escape") || logCount >= 10) {
+		if (narrationResponse["End of Game"]) {
+			session.requirementsMet = true;
+		}
 		session.isCompleted = true;
 		session.endingState = `The journey ends here... ${narrationResponse.narration}`;
 	}
@@ -161,7 +181,8 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 		storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
 		requiresRoll: narrationResponse.requiresRoll,
 		threshold: narrationResponse.threshold,
-		isCompleted: session.isCompleted
+		isCompleted: session.isCompleted,
+		requirementsMet: session.requirementsMet
 	};
 };
 
