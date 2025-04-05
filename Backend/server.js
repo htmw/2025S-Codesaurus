@@ -19,8 +19,13 @@ app.use(cors());
 
 // MongoDB 
 mongoose.connect(process.env.MONGO_URI, {
-}).then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.error("connection error:", err));
+}).then(() => {
+  console.log("Connected to MongoDB");
+}).catch(err => {
+  console.error("MongoDB connection error:", err.message);
+  console.error("Please check your connection string and credentials");
+  process.exit(1); // Exit the process if we can't connect to the database
+});
 
 app.get("/", (req, res) => {
   res.send("Server is running");
