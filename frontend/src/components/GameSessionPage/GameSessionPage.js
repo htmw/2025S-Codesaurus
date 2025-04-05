@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Container, Form, InputGroup, Button } from "react-bootstrap";
 import { FaPaperPlane } from "react-icons/fa";
 import Typewriter from "../UIComponent/Typewriter";
@@ -11,8 +11,9 @@ const API_BASE_URL = "http://localhost:8081/api";
 
 function GameSessionPage() {
     const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const storyId = queryParams.get("story");
+    const navigate = useNavigate();
+
+    const storyId = location.state.story;
 
     const [sessionId, setSessionId] = useState(localStorage.getItem("sessionId"));
     const [loading, setLoading] = useState(true);
@@ -30,11 +31,7 @@ function GameSessionPage() {
     const [isDisabled, setIsDisabled] = useState(false);
 
     useEffect(() => {
-        if (!sessionId) {
-            startGame();
-        } else {
-            fetchMessageHistory(sessionId);
-        }
+        fetchMessageHistory(sessionId);
     }, [storyId]);
 
     useEffect(() => {
@@ -43,6 +40,9 @@ function GameSessionPage() {
 
     // Initialize success/failure counts in localStorage if they don't exist
     useEffect(() => {
+        if (!localStorage.getItem('sessionId')) {
+            navigate("/",);
+        }
         if (!localStorage.getItem('successCount')) {
             localStorage.setItem('successCount', '0');
         }
@@ -128,38 +128,6 @@ function GameSessionPage() {
             }
             return newMessages;
         });
-    };
-
-    const startGame = async () => {
-        if (!storyId) {
-            setError("No story selected.");
-            setLoading(false);
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/start-game`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ storyId }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                localStorage.setItem("sessionId", data.sessionId);
-                setSessionId(data.sessionId);
-                setMessages([{ sender: "narrator", text: data.storyState }]);
-            } else {
-                throw new Error(data.message || "Failed to start game.");
-            }
-        } catch (err) {
-            setError("Server error. Please try again.");
-            console.error("Error:", err);
-        } finally {
-            setLoading(false);
-        }
     };
 
     const fetchMessageHistory = async (sessionId) => {

@@ -2,7 +2,9 @@ require("dotenv").config();
 const { OpenAI } = require("openai");
 const GameSession = require("../models/GameSession");
 const Log = require("../models/Logs");
-const Story = require('../models/Stories')
+const Story = require('../models/Stories');
+const Character = require("../models/Character");
+const { createCharacterInDB } = require("./characterController");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -13,7 +15,19 @@ const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollR
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
-		
+
+		const character = await Character.findOne({ gameSessionId: sessionId });
+
+		const characterJSON = character
+			? JSON.stringify({
+				name: character.name,
+				race: character.race,
+				class: character.class,
+				background: character.background,
+				stats: character.stats
+			}, null, 2)
+			: "null";
+
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
 Respond ONLY in this JSON format:
@@ -29,6 +43,15 @@ Rules:
 - Examples: climbing cliffs, disarming traps, attacking enemies.
 - Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
 - Choose a threshold between 1-6 (inclusive) when rolling is necessary.
+- The player's character is provided as JSON and includes attributes such as class, race, background, and stats.
+- Mention the character's background or class in narration if contextually relevant, to enhance immersion.
+- Do not contradict the player's stats in narration. For example, avoid describing clumsiness if dexterity is high.
+- Use the following mapping for stat relevance:
+    - Physical actions → strength, dexterity, constitution
+    - Mental/magical actions → intelligence, wisdom
+    - Social/influence actions → charisma
+- If the character has high relevant stats (≥ 4), consider lowering thresholds or removing dice rolls entirely for appropriate actions.
+- If the character has low relevant stats (≤ 2), make success more difficult or describe risks accordingly.
 - narration should be concise (2-3 sentences) and end with an open-ended question.
 - Set "End of Game": true and generate the ending narration without a question mark and suitable for ending the game ONLY IN THIS CASE if anything in the past logs seem even slightly similar to meeting these following requirements: ${JSON.stringify(requirements)}.
 - Try to guide the player to eventually meet the requirement from the beginning itself in every response as required in this: ${JSON.stringify(requirements)}.
@@ -39,6 +62,8 @@ Rules:
 
 NPCs present in the story: ${npcList}
 
+Player Character JSON:
+${characterJSON}
 
 ${diceRollResult ?
 				`The player's last action required a dice roll.
@@ -64,7 +89,7 @@ ${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
 
 		const content = response.choices[0].message.content;
 		return JSON.parse(content);
-		
+
 	} catch (error) {
 		console.error("OpenAI API error:", error);
 		return {
@@ -76,31 +101,48 @@ ${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
 };
 
 const startGame = async (req, res) => {
-	const { storyId } = req.body;
+	const { storyId, character } = req.body;
 	if (!storyId) return res.status(400).json({ message: "Missing story ID." });
+	if (!character) return res.status(400).json({ message: "Missing character details." });
 
 	try {
 		const story = await Story.findById(storyId).populate("npcIds");
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
-		const storyState = `The adventure begins...\n${story.prompt}`
+		// Step 1: Create Character
+		const newCharacter = await createCharacterInDB({
+			name: character.name,
+			race: character.race,
+			characterClass: character.class,
+			background: character.background,
+			stats: character.stats,
+		});
+
+		// Step 2: Create Game Session
+		const storyState = `The adventure begins...\n${story.prompt}`;
 		const session = new GameSession({
 			storyId,
 			storyState,
 		});
-
 		await session.save();
 
+		// Step 3: Link character to session
+		newCharacter.gameSessionId = session._id;
+		await newCharacter.save(); // update character with sessionId
+
+		// Step 4: Create initial log
 		await Log.create({
 			sessionId: session._id.toString(),
 			context: storyState,
-			userInput: null
+			userInput: null,
 		});
 
+		// Step 5: Respond
 		res.json({
 			message: `Game started: ${story.title}`,
 			sessionId: session._id.toString(),
 			storyState: session.storyState,
+			characterId: newCharacter._id,
 		});
 	} catch (err) {
 		console.error("Server Error:", err);
@@ -136,15 +178,15 @@ const playTurn = async (req, res) => {
 
 const processNarration = async ({ session, storyPrompt, playerChoice = null, diceRollResult = null }) => {
 	// TODO: why does generateNarration need storyPrompt?
-	
+
 	//Accepting NPCs
 	const story = await Story.findById(session.storyId).populate("npcIds");
-	
+
 	const npcList = story.npcIds.map(npc =>
-        `${npc.title} (${npc.role}) - ${npc.description}`
-    ).join(", ");
+		`${npc.title} (${npc.role}) - ${npc.description}`
+	).join(", ");
 	console.log('npcList: ', npcList);
-	
+
 	const narrationResponse = await generateNarration(
 		playerChoice,
 		session._id,
@@ -152,7 +194,6 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 		diceRollResult,
 		npcList,
 		story.requirements
-		
 	);
 
 	session.storyState = narrationResponse.narration;

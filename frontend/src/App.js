@@ -7,6 +7,8 @@ import ThemePage from "./components/ThemePage/ThemePage";
 import StoryPage from "./components/StoryPage/StoryPage";
 import GameSession from "./components/GameSessionPage/GameSessionPage"
 import ChatWindow from './components/ChatWindow/chat-window';
+import CharacterPage from "./components/CharacterPage/CharacterPage";
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
 function App() {
@@ -16,7 +18,7 @@ function App() {
       <div className="app-wrapper">
 
         {/* Home Screen */}
-        <Container className="home-screen" fluid>
+        <Container className="home-screen p-0" fluid>
           <Routes>
             {/* Default Route */}
 
@@ -24,6 +26,7 @@ function App() {
 
             <Route path="/themes" element={<ThemePage />} />
             <Route path="/stories" element={<StoryPage />} />
+            <Route path="/character" element={<CharacterPage />} />
             <Route path="/gameSession" element={<GameSession />} />
             <Route path="/chatwindow" element={<ChatWindow />} />
 

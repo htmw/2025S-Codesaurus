@@ -5,6 +5,7 @@ const cors = require("cors");
 
 const logRoutes = require("./routes/logRoutes"); // Import routes
 const narratorRoutes = require("./routes/narratorRoutes");
+const characterRoutes = require("./routes/characterRoutes");
 const themeRoutes = require("./routes/themeRoutes"); // Theme routes
 const storyRoutes = require("./routes/storyRoutes"); // Story routes
 const npcRoutes = require("./routes/npcRoutes"); //NPC routes
@@ -33,8 +34,12 @@ app.get("/", (req, res) => {
 
 app.use("/api", logRoutes);
 app.use("/api", narratorRoutes);
+app.use("/api", characterRoutes); //Characters
+
 app.use("/api", themeRoutes); //Theme
 app.use("/api", storyRoutes); //Story
 app.use("/api", npcRoutes); //NPC
 
 app.listen(PORT, () => console.log(`running on port ${PORT}`));
+
+
