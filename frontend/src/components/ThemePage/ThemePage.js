@@ -46,7 +46,7 @@ const ThemePage = () => {
       <Container fluid>
         <Row className="theme-container">
           {themes.map((theme) => (
-            <Col key={theme._id} xs={12} sm={6} md={4} lg={3} className="theme-col">
+            <Col key={theme._id} xs={12} sm={6} md={4} lg={2} className="theme-col">
               <div
                 className={`theme-option ${selectedTheme?._id === theme._id ? "selected" : ""}`}
                 onClick={() => handleThemeSelect(theme)}

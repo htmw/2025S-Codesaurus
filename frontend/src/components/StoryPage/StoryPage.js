@@ -44,31 +44,34 @@ const StoryPage = () => {
             <h1 className="theme-header">Select a Story</h1>
 
             <Container fluid>
-                <Row className="theme-container">
-                    {filteredStories.length > 0 ? (
-                        filteredStories.map((story) => (
-                            <Col key={story._id} xs={12} sm={6} md={4} lg={3}>
-                                <Card
-                                    className={`story-card ${selectedStory?._id === story._id ? "selected" : ""}`}
-                                    onClick={() => handleStorySelect(story)}
-                                >
-                                    <Card.Body>
-                                        <Card.Title>{story.title}</Card.Title>
-                                        <Card.Text>{story.description}</Card.Text>
-                                        <p><i>Duration: {story.duration} minutes</i></p>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))
-                    ) : (
-                        <p>No stories available for this theme.</p>
-                    )}
+                <Row className="d-flex flex-lg-row flex-column-reverse justify-content-between">
+                    {/* Story Cards Column */}
+                    <Col lg={9}>
+                        <Row className="theme-container">
+                            {filteredStories.map((story) => (
+                                <Col key={story._id} xs={12} sm={6} md={6} lg={4}>
+                                    <Card
+                                        className={`story-card ${selectedStory?._id === story._id ? "selected" : ""}`}
+                                        onClick={() => handleStorySelect(story)}
+                                    >
+                                        <Card.Body>
+                                            <Card.Title>{story.title}</Card.Title>
+                                            <Card.Text>{story.description}</Card.Text>
+                                            <p><i>Duration: {story.duration} minutes</i></p>
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            ))}
+                        </Row>
+                    </Col>
+
+                    {/* NPC Column */}
+                    <Col lg={3}>
+                        {selectedStory?.npcIds && <NPCView npcs={selectedStory.npcIds} />}
+                    </Col>
                 </Row>
             </Container>
 
-            {selectedStory && selectedStory.npcIds && (
-                <NPCView npcs={selectedStory.npcIds} />
-            )}
 
             <Button
                 variant="warning"
