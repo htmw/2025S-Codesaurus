@@ -64,6 +64,7 @@ Rules:
 - Avoid using phrases like "as you already know" or referring to past interactions with NPCs that did not actually happen.
 - Do NOT explain anything outside the JSON. No extra text.
 - Do NOT offer predefined choices.
+- Make it more descriptive.
 ${shouldForceEnd ? `
 - This story has gone on for too long without resolution. You MUST end the game now with a loss for the player.
 - Set "End of Game": true and write a graceful defeat narration without a question mark.
