@@ -1,52 +1,39 @@
 .homepage {
-    position: relative;
-    height: 100vh;
-    background-image: url("/public/images/background.png");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-  }
+	position: relative;
+	height: 100vh;
+	background-image: url('/public/images/background.png');
+	background-size: cover;
+	background-position: center;
+	background-attachment: fixed;
+}
 
-  /* Center content on the page */
+/* Center content on the page */
 .homepage-background {
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    color: black;
-  }
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+	color: black;
+}
 
-  /* Styling for the header */
+/* Styling for the header */
 .homepage-header {
-    font-size: 3rem;
-    font-weight: bold;
-    margin-bottom: 20px;
-    color: #FFD966;
-    text-shadow: 4px 4px 10px rgba(255, 255, 255, 0.7); 
-  }
+	font-size: 3rem;
+	font-weight: bold;
+	margin-bottom: 20px;
+	color: #ffd966;
+	text-shadow: 4px 4px 10px rgba(255, 255, 255, 0.7);
+}
 
-  /* Styling for the paragraph */
+/* Styling for the paragraph */
 .homepage-paragraph {
-    font-size: 1.5rem;
-    margin-bottom: 30px;
-    color: #FFFFFF;
-    text-shadow: 4px 4px 10px rgba(199, 199, 199, 0.7); 
-  }
+	font-size: 1.5rem;
+	margin-bottom: 30px;
+	color: #ffffff;
+	text-shadow: 4px 4px 10px rgba(199, 199, 199, 0.7);
+}
 
-  .p {
-    font-size: medium; 
-  }
-  
-  /* Position the Continue button at the bottom-right */
-  .continue-button {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    background-color: #FFD966;
-    color: #007986;
-    width: 200px;
-    height: 50px;
-    border-radius: 100px;
-    border-color: #007986
-  };
+.p {
+	font-size: medium;
+}

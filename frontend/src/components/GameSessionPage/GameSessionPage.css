@@ -58,8 +58,8 @@
 }
 
 .chat-input {
-	background: rgba(255, 255, 255, 0.1);
-	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.1) !important;
+	border-radius: 8px !important;
 	padding: 10px;
 	display: flex;
 	align-items: center;
@@ -71,17 +71,17 @@
 }
 
 .chat-input-field {
-	background: transparent;
-	border: none;
-	color: white;
+	background: transparent !important;
+	border: none !important;
+	color: white !important;
 	flex-grow: 1;
 	padding: 8px;
 	border-radius: 4px;
 }
 
 .chat-input-field::placeholder {
-	color: #ffd966b5;
-	font-style: italic;
+	color: #ffd966b5 !important;
+	font-style: italic !important;
 }
 
 .dot {
@@ -109,22 +109,57 @@
 	100% {
 		transform: translateY(0);
 	}
+
 	30% {
 		transform: translateY(-4px);
 	}
 }
 
 .send-button {
-	background: none;
-	border: none;
-	color: #ffd966;
+	background: none !important;
+	border: none !important;
+	color: #ffd966 !important;
 }
 
 .send-button:hover {
-	color: #ffd966b5;
+	color: #ffd966b5 !important;
 }
 
 .send-button:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
+	opacity: 0.5 !important;
+	cursor: not-allowed !important;
+}
+
+.game-result {
+	text-align: center;
+	font-size: 2rem;
+	font-weight: bold;
+	margin: 1rem 0;
+	padding: 1rem;
+	border-radius: 8px;
+	animation: fadeIn 0.5s ease-in;
+}
+
+.game-result.win {
+	background-color: rgba(40, 167, 69, 0.2);
+	color: #28a745;
+	border: 2px solid #28a745;
+}
+
+.game-result.loss {
+	background-color: rgba(220, 53, 69, 0.2);
+	color: #dc3545;
+	border: 2px solid #dc3545;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }

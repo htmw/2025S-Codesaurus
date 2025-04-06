@@ -1,45 +1,41 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button, Card } from "react-bootstrap";
-import "./StoryPage.css"; 
+import "./StoryPage.css";
+import NPCView from "../NPCView/NPCView";
 
 const StoryPage = () => {
     const [stories, setStories] = useState([]);
     const [selectedStory, setSelectedStory] = useState(null);
-    const location = useLocation(); // Use this hook to access the query params
+    const location = useLocation();
     const navigate = useNavigate();
 
     const API_BASE_URL = "http://localhost:8081/api";
 
-    // Get the theme ID from query params
     const queryParams = new URLSearchParams(location.search);
     const themeId = queryParams.get("theme");
 
-    // Fetch stories based on the selected theme ID
     useEffect(() => {
         if (themeId) {
             fetch(`${API_BASE_URL}/stories`)
                 .then((res) => res.json())
                 .then((data) => {
                     console.log("Fetched stories:", data);
-                    setStories(data);  // Set the fetched stories to state
+                    setStories(data);
                 })
                 .catch((error) => console.error("Error fetching stories:", error));
         }
     }, [themeId]);
 
-    // Filter stories based on the themeId from query parameter
     const filteredStories = stories.filter(story => story.themeId._id === themeId);
 
-    // Handle story selection
     const handleStorySelect = (story) => {
-        setSelectedStory(story);
+        setSelectedStory(prevStory => prevStory?._id === story._id ? null : story);
     };
 
-    // Navigate to game session with selected story
     const handleContinue = () => {
         if (selectedStory) {
-            navigate(`/gameSession?story=${selectedStory._id}`);
+            navigate("/character", { state: { story: selectedStory._id } });
         }
     };
 
@@ -48,30 +44,37 @@ const StoryPage = () => {
             <h1 className="theme-header">Select a Story</h1>
 
             <Container fluid>
-                <Row className="theme-container">
-                    {filteredStories.length > 0 ? (
-                        filteredStories.map((story) => (
-                            <Col key={story._id} xs={12} sm={6} md={4} lg={3}>
-                                <Card 
-                                className={`story-card ${selectedStory?._id === story._id ? "selected" : ""}`} 
-                                    onClick={() => handleStorySelect(story)}
-                                >
-                                    <Card.Body>
-                                        <Card.Title>{story.title}</Card.Title>
-                                        <Card.Text>{story.description}</Card.Text>
-                                        <p><i>Duration: {story.duration} minutes</i></p>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))
-                    ) : (
-                        <p>No stories available for this theme.</p>
-                    )}
+                <Row className="d-flex flex-lg-row flex-column-reverse justify-content-between">
+                    {/* Story Cards Column */}
+                    <Col lg={9}>
+                        <Row className="theme-container">
+                            {filteredStories.map((story) => (
+                                <Col key={story._id} xs={12} sm={6} md={6} lg={4}>
+                                    <Card
+                                        className={`story-card ${selectedStory?._id === story._id ? "selected" : ""}`}
+                                        onClick={() => handleStorySelect(story)}
+                                    >
+                                        <Card.Body>
+                                            <Card.Title>{story.title}</Card.Title>
+                                            <Card.Text>{story.description}</Card.Text>
+                                            <p><i>Duration: {story.duration} minutes</i></p>
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            ))}
+                        </Row>
+                    </Col>
+
+                    {/* NPC Column */}
+                    <Col lg={3}>
+                        {selectedStory?.npcIds && <NPCView npcs={selectedStory.npcIds} />}
+                    </Col>
                 </Row>
             </Container>
 
+
             <Button
-                variant="primary"
+                variant="warning"
                 className="continue-button"
                 onClick={handleContinue}
                 disabled={!selectedStory}

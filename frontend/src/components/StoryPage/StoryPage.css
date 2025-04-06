@@ -1,5 +1,5 @@
 .story-card {
-	width: 225px;
+    width: 225px;
     height: 425px;
     border-radius: 10px;
     cursor: pointer;
@@ -14,15 +14,10 @@
     transform: scale(1.1);
 }
 
-/* .story-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-} */
-
 .story-card .card-title {
     font-size: 1rem;
     font-weight: bold;
-	color: #FFD966;
+    color: #FFD966;
 }
 
 .story-card .card-text {
