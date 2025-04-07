@@ -8,6 +8,7 @@ import StoryPage from "./components/StoryPage/StoryPage";
 import GameSession from "./components/GameSessionPage/GameSessionPage"
 import ChatWindow from './components/ChatWindow/chat-window';
 import CharacterPage from "./components/CharacterPage/CharacterPage";
+import TextToSpeechPage from "./components/tts/TextToSpechPage.js";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
@@ -29,6 +30,7 @@ function App() {
             <Route path="/character" element={<CharacterPage />} />
             <Route path="/gameSession" element={<GameSession />} />
             <Route path="/chatwindow" element={<ChatWindow />} />
+            <Route path="/tts" element={<TextToSpeechPage />} />
 
           </Routes>
         </Container>

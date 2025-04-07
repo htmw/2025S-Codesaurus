@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Container, Form, InputGroup, Button } from "react-bootstrap";
-import { FaPaperPlane } from "react-icons/fa";
+import { FaPaperPlane, FaVolumeUp } from "react-icons/fa";
 import Typewriter from "../UIComponent/Typewriter";
 import DiceRoller from "../DiceComponent/DiceRoller";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,7 +21,7 @@ function GameSessionPage() {
     const [messages, setMessages] = useState([]);
     const [playerInput, setPlayerInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
-    const [gameResult, setGameResult] = useState(null); // 'win' or 'loss'
+    const [gameResult, setGameResult] = useState(null);
     const messagesEndRef = useRef(null);
 
     const [requiresRoll, setRequiresRoll] = useState(false);
@@ -29,6 +29,9 @@ function GameSessionPage() {
     const [diceValue, setDiceValue] = useState(1);
     const [isCompleted, setIsCompleted] = useState(false);
     const [isDisabled, setIsDisabled] = useState(false);
+
+    const [voices, setVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState("");
 
     useEffect(() => {
         fetchMessageHistory(sessionId);
@@ -38,89 +41,83 @@ function GameSessionPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    // Initialize success/failure counts in localStorage if they don't exist
     useEffect(() => {
-        if (!localStorage.getItem('sessionId')) {
-            navigate("/",);
+        if (!localStorage.getItem("sessionId")) {
+            navigate("/");
         }
-        if (!localStorage.getItem('successCount')) {
-            localStorage.setItem('successCount', '0');
+        if (!localStorage.getItem("successCount")) {
+            localStorage.setItem("successCount", "0");
         }
-        if (!localStorage.getItem('failureCount')) {
-            localStorage.setItem('failureCount', '0');
+        if (!localStorage.getItem("failureCount")) {
+            localStorage.setItem("failureCount", "0");
         }
+
+        const loadVoices = () => {
+            const availableVoices = window.speechSynthesis.getVoices();
+            setVoices(availableVoices);
+            if (availableVoices.length > 0) {
+                setSelectedVoice(availableVoices[0].name);
+            }
+        };
+
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
     }, []);
 
-    // Function to update success/failure counts
+    const speakText = (text) => {
+        if (!text) return;
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voice = voices.find((v) => v.name === selectedVoice);
+        if (voice) utterance.voice = voice;
+        window.speechSynthesis.speak(utterance);
+    };
+
     const updateRollCounts = (message) => {
-        const successCount = parseInt(localStorage.getItem('successCount') || '0');
-        const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
-
-        console.log(message);
-
-        if (message.toLowerCase().includes('success')) {
-            localStorage.setItem('successCount', (successCount + 1).toString());
-        } else if (message.toLowerCase().includes('failure')) {
-            localStorage.setItem('failureCount', (failureCount + 1).toString());
+        const successCount = parseInt(localStorage.getItem("successCount") || "0");
+        const failureCount = parseInt(localStorage.getItem("failureCount") || "0");
+        if (message.toLowerCase().includes("success")) {
+            localStorage.setItem("successCount", (successCount + 1).toString());
+        } else if (message.toLowerCase().includes("failure")) {
+            localStorage.setItem("failureCount", (failureCount + 1).toString());
         }
     };
 
-    // Function to reset counts when game ends
     const resetRollCounts = () => {
-        localStorage.setItem('successCount', '0');
-        localStorage.setItem('failureCount', '0');
+        localStorage.setItem("successCount", "0");
+        localStorage.setItem("failureCount", "0");
     };
 
     const processNarrationText = (text) => {
-        if (!text.includes('?')) return text;
-
-        // Split by periods and get the last sentence
-        const sentences = text.split('.');
+        if (!text.includes("?")) return text;
+        const sentences = text.split(".");
         const lastSentence = sentences[sentences.length - 1].trim();
-
-        // If the last sentence contains a question mark, remove it
-        if (lastSentence.includes('?')) {
-            // Join all sentences except the last one
-            return sentences.slice(0, -1).join('.').trim() + '.';
+        if (lastSentence.includes("?")) {
+            return sentences.slice(0, -1).join(".").trim() + ".";
         }
-
         return text;
     };
 
     const determineGameResult = (data) => {
-        // Update counts based on the message
         updateRollCounts(data.storyState);
-
-        // Get current counts
-        const successCount = parseInt(localStorage.getItem('successCount') || '0');
-        const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
-
-        // Determine win/loss based on success/failure ratio
-        // If there are more successes than failures, it's a win
+        const successCount = parseInt(localStorage.getItem("successCount") || "0");
+        const failureCount = parseInt(localStorage.getItem("failureCount") || "0");
         if (data.requirementsMet) {
             const isWin = successCount >= failureCount;
-
-            // Reset counts after determining result
             resetRollCounts();
-
-            return isWin ? 'win' : 'loss';
+            return isWin ? "win" : "loss";
         } else {
             resetRollCounts();
-            return 'loss';
+            return "loss";
         }
     };
 
     const handleGameEnd = (result, narration) => {
         setGameResult(result);
         localStorage.removeItem("sessionId");
-        // localStorage.removeItem("successCount");
-        // localStorage.removeItem("failureCount");
         setSessionId(null);
         setIsCompleted(true);
         setIsDisabled(true);
-
-        // Update the last message with processed narration
-        setMessages(prev => {
+        setMessages((prev) => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
             if (lastMessage && lastMessage.sender === "narrator") {
@@ -137,19 +134,18 @@ function GameSessionPage() {
             const data = await response.json();
 
             if (response.ok) {
-                // Fetch logs separately
                 const logsRes = await fetch(`${API_BASE_URL}/logs/${sessionId}`);
                 const logsData = await logsRes.json();
 
                 const formattedMessages = logsData.map((log) => [
                     { sender: "narrator", text: log.context },
-                    { sender: "player", text: log.userInput }
-                ]).flat().filter(msg => msg.text);
+                    { sender: "player", text: log.userInput },
+                ]).flat().filter((msg) => msg.text);
 
                 setMessages(formattedMessages);
-                setRequiresRoll(data.requiresRoll); //update dice state
-                setIsCompleted(data.isCompleted); //Set game completion state
-                setIsDisabled(data.isCompleted); //Disable input if game is completed
+                setRequiresRoll(data.requiresRoll);
+                setIsCompleted(data.isCompleted);
+                setIsDisabled(data.isCompleted);
 
                 if (data.isCompleted) {
                     const lastMessage = formattedMessages[formattedMessages.length - 1]?.text || "";
@@ -190,7 +186,6 @@ function GameSessionPage() {
                 setIsDisabled(data.isCompleted);
 
                 if (data.isCompleted) {
-                    console.log(data.requirementsMet);
                     const endResult = determineGameResult(data);
                     handleGameEnd(endResult, data.storyState);
                 }
@@ -220,25 +215,21 @@ function GameSessionPage() {
             });
 
             const data = await response.json();
-            console.log(JSON.stringify(data));
 
             if (response.ok) {
-                setDiceValue(data.diceRoll); // Update dice face
-                console.log(data.success);
-
-                // Update success/failure counts based on the dice roll result
+                setDiceValue(data.diceRoll);
                 if (data.success) {
-                    const successCount = parseInt(localStorage.getItem('successCount') || '0');
-                    localStorage.setItem('successCount', (successCount + 1).toString());
+                    const successCount = parseInt(localStorage.getItem("successCount") || "0");
+                    localStorage.setItem("successCount", (successCount + 1).toString());
                 } else {
-                    const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
-                    localStorage.setItem('failureCount', (failureCount + 1).toString());
+                    const failureCount = parseInt(localStorage.getItem("failureCount") || "0");
+                    localStorage.setItem("failureCount", (failureCount + 1).toString());
                 }
 
-                setMessages(prev => [
+                setMessages((prev) => [
                     ...prev,
                     { sender: "player", text: data.diceUserMessage },
-                    { sender: "narrator", text: data.storyState }
+                    { sender: "narrator", text: data.storyState },
                 ]);
                 setTimeout(() => {
                     setRequiresRoll(data.requiresRoll);
@@ -252,9 +243,9 @@ function GameSessionPage() {
             }
         } catch (error) {
             console.error("Dice Roll Error:", error);
-            setMessages(prev => [
+            setMessages((prev) => [
                 ...prev,
-                { sender: "narrator", text: "Something went wrong while rolling the dice." }
+                { sender: "narrator", text: "Something went wrong while rolling the dice." },
             ]);
         } finally {
             setRolling(false);
@@ -268,13 +259,12 @@ function GameSessionPage() {
 
                 {gameResult && (
                     <div className={`game-result ${gameResult}`}>
-                        {gameResult === 'win' ? '🎉 Victory!' : '💀 Game Over'}
+                        {gameResult === "win" ? "🎉 Victory!" : "💀 Game Over"}
                     </div>
                 )}
 
                 <div className="message-area">
                     {messages.map((msg, index) => {
-                        const isLastMessage = index === messages.length - 1;
                         const isNarrator = msg.sender === "narrator";
                         return (
                             <motion.div
@@ -284,10 +274,23 @@ function GameSessionPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5 }}
                             >
-                                {isNarrator && isLastMessage ? (
-                                    <Typewriter text={msg.text || ""} speed={15} delay={0} />
+                                {isNarrator ? (
+                                    <>
+                                        {index === messages.length - 1 ? (
+                                            <Typewriter text={msg.text || ""} speed={15} delay={0} />
+                                        ) : (
+                                            msg.text
+                                        )}
+                                        <Button
+                                            className="voice-button"
+                                            variant="link"
+                                            onClick={() => speakText(msg.text)}
+                                        >
+                                            <FaVolumeUp size={18} />
+                                        </Button>
+                                    </>
                                 ) : (
-                                    isNarrator ? msg.text : <em>"{msg.text}"</em>
+                                    <em>"{msg.text}"</em>
                                 )}
                             </motion.div>
                         );
@@ -303,7 +306,21 @@ function GameSessionPage() {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Chat Input */}
+                <Form.Group controlId="voiceSelect">
+                    <Form.Label>Select Voice:</Form.Label>
+                    <Form.Control
+                        as="select"
+                        value={selectedVoice}
+                        onChange={(e) => setSelectedVoice(e.target.value)}
+                    >
+                        {voices.map((voice, index) => (
+                            <option key={index} value={voice.name}>
+                                {voice.name} ({voice.lang})
+                            </option>
+                        ))}
+                    </Form.Control>
+                </Form.Group>
+
                 <InputGroup className="chat-input">
                     <Form.Control
                         type="text"

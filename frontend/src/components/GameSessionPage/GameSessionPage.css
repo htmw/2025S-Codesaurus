@@ -163,3 +163,39 @@
 		transform: translateY(0);
 	}
 }
+
+/* Voice Dropdown Styling */
+#voiceSelect {
+	margin: 10px 0;
+}
+
+#voiceSelect label {
+	color: #ffd966;
+	font-weight: bold;
+	font-size: 14px;
+	margin-bottom: 6px;
+	display: inline-block;
+}
+
+#voiceSelect select,
+.form-control {
+	background-color: rgba(255, 255, 255, 0.1) !important;
+	color: #fff !important;
+	border: 1px solid #ffd966 !important;
+	border-radius: 8px !important;
+	padding: 10px;
+	font-size: 14px;
+	box-shadow: none !important;
+	transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#voiceSelect select:focus,
+.form-control:focus {
+	border-color: #ffeb9c !important;
+	box-shadow: 0 0 0 0.2rem rgba(255, 217, 102, 0.25) !important;
+}
+
+option {
+	background-color: #0a2d35;
+	color: #fff;
+}
