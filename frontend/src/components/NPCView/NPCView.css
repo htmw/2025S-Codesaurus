@@ -1,10 +1,10 @@
 .npc-container {
-	background-color: #0a2d35;
+	/* background-color: #0a2d35; */
 	border-radius: 10px;
 	padding: 10px 15px;
 	max-height: 75vh;
 	overflow-y: auto;
-	box-shadow: -4px 4px 15px rgba(0, 0, 0, 0.3);
+	/* box-shadow: -4px 4px 15px rgba(0, 0, 0, 0.3); */
 	width: 100%;
 	margin-left: auto;
 }

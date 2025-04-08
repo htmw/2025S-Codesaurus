@@ -17,7 +17,7 @@ const NPCView = ({ npcs }) => {
 
                 return (
                     <Row className="d-flex justify-content-center mb-2" key={npc._id} xs={12} sm={6} md={4} >
-                        <Card style={{ width: '18rem' }} className="text-white">
+                        <Card style={{ width: '18rem' }} className="text-white p-0">
                             <Card.Img variant="top" src={npcImage} alt={npc.title} />
                             <Card.Body>
                                 <Card.Title>{npc.title}</Card.Title>
@@ -35,25 +35,6 @@ const NPCView = ({ npcs }) => {
                                 </Card.Text>
                             </Card.Body>
                         </Card>
-                        {/* <Card className="npc-card">
-                                <div>
-                                    <Card.Img variant="top" src={npcImage} alt={npc.title} className="npc-image" />
-                                    <Card.Text className="npc-description">
-                                        <b>Alignment:</b> {npc.alignment} <br />
-                                        <b>Strength:</b> {npc.stats.strength} |
-                                        <b> Intelligence:</b> {npc.stats.intelligence} |
-                                        <b> Charisma:</b> {npc.stats.charisma} |
-                                        <b> Agility:</b> {npc.stats.agility}
-                                    </Card.Text>
-                                </div>
-                                <Card.Body>
-                                    <Card.Title className="npc-title">{npc.title}</Card.Title>
-                                    <Card.Text className="npc-role"><b>Role:</b> {npc.role}</Card.Text>
-                                    <Card.Text className="npc-role">
-                                        {npc.description} <br />
-                                    </Card.Text>
-                                </Card.Body>
-                            </Card> */}
                     </Row>
                 );
             })}

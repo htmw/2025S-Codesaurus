@@ -1,31 +1,64 @@
 .story-card {
-    width: 225px;
-    height: 425px;
-    border-radius: 10px;
-    cursor: pointer;
-    padding: 20px;
-    margin: 10px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    background-color: #0A2D35;
+	width: 225px;
+	height: 425px;
+	border-radius: 10px;
+	cursor: pointer;
+	padding: 20px;
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+	background-color: #0a2d35;
 }
 
 .story-card.selected {
-    border: 2px solid #FFFFFF;
-    transform: scale(1.1);
+	border-bottom: 2px solid #ffd966;
 }
 
 .story-card .card-title {
-    font-size: 1rem;
-    font-weight: bold;
-    color: #FFD966;
+	font-size: 1rem;
+	font-weight: bold;
+	color: #ffd966;
 }
 
 .story-card .card-text {
-    font-size: 1rem;
-    color: #FFFFFF;
+	font-size: 1rem;
+	color: #ffffff;
 }
 
 .story-card p {
-    font-size: 0.9rem;
-    color: #c4c4c4;
+	font-size: 0.9rem;
+	color: #c4c4c4;
+}
+
+.npc-panel {
+	width: 225px;
+	height: 425px;
+	color: white;
+	border-radius: 10px;
+	display: flex;
+	flex-direction: column;
+	margin-left: -5px;
+}
+
+.npc-panel-header {
+	padding: 10px;
+	font-weight: bold;
+	text-align: center;
+	color: #ffd966;
+	border-top-left-radius: 10px;
+	border-top-right-radius: 10px;
+	border-bottom: 1px solid #333;
+}
+
+.npc-panel-scroll {
+	flex-grow: 1;
+	overflow-y: auto;
+	padding-left: 8px;
+	padding-right: 5px;
+}
+
+.npc-panel-scroll::-webkit-scrollbar {
+	width: 6px;
+}
+.npc-panel-scroll::-webkit-scrollbar-thumb {
+	background-color: #ffd966;
+	border-radius: 4px;
 }
