@@ -22,3 +22,13 @@ const upload = multer({
   }),
 });
 
+// Route to upload image
+router.post("/upload-npc-image", upload.single("image"), (req, res) => {
+    res.json({
+      message: "Upload successful",
+      imageUrl: req.file.location,
+    });
+  });
+  
+  module.exports = router;
+  
