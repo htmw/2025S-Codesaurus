@@ -11,14 +11,21 @@ const MAX_ITERATIONS = 3;
 /**
  * AI Narrator Function - Generates AI narration based on past choices
  */
-const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollResult = null, npcList = "", requirements = []) => {
+const generateNarration = async ({
+	playerChoices = [],
+	sessionId,
+	storyPrompt,
+	diceRollResult = null,
+	npcList = "",
+	requirements = []
+}) => {
 	try {
 		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
 		const previousChoices = logs.map(log => log.userInput);
 		const shouldForceEnd = logs.length >= MAX_ITERATIONS;
 
+		// Fetch character (first one for now — for prompt context)
 		const character = await Character.findOne({ gameSessionId: sessionId });
-
 		const characterJSON = character
 			? JSON.stringify({
 				name: character.name,
@@ -29,13 +36,17 @@ const generateNarration = async (playerChoice, sessionId, storyPrompt, diceRollR
 			}, null, 2)
 			: "null";
 
+		const formattedInput = Array.isArray(playerChoices)
+			? playerChoices.map(p => `${p.characterId}: "${p.choice}"`).join(" | ")
+			: playerChoices;
+
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
 Respond ONLY in this JSON format:
 {
   "requiresRoll": true | false,
   "threshold": number | null,
-  "narration": "string ending with a question unless "End of Game" is true",
+  "narration": "string ending with a question unless 'End of Game' is true",
   "End of Game": true | false
 }
 
@@ -56,7 +67,7 @@ Rules:
 - narration should be concise (2-3 sentences) and end with an open-ended question.
 - Set "End of Game": true and generate the ending narration without a question mark and suitable for ending the game ONLY IN THIS CASE if anything in the past logs seem even slightly similar to meeting these following requirements: ${JSON.stringify(requirements)}.
 - Try to guide the player to eventually meet the requirement from the beginning itself in every response as required in this: ${JSON.stringify(requirements)}.
-- Make sure when you read the player choices in every response you are very senstive the the player's choices and consider the game as ended even if the choices very slightly resemble the requirements.
+- Make sure when you read the player choices in every response you are very sensitive to the player's choices and consider the game as ended even if the choices very slightly resemble the requirements.
 - Whenever you decide to set "End of Game": true, make sure the "narration" is suitable for ending the game.
 - NPCs must only be mentioned or referenced if they were already introduced to the player earlier in the story or are contextually entering the scene for the first time.
 - Do NOT assume the player already knows who an NPC is unless the NPC was described or interacted with earlier.
@@ -74,17 +85,17 @@ NPCs present in the story: ${npcList}
 Player Character JSON:
 ${characterJSON}
 
-${diceRollResult ?
-				`The player's last action required a dice roll.
+${diceRollResult ? `
+The player's last action required a dice roll.
 Dice Result: ${diceRollResult.diceRoll}
 Threshold to Succeed: ${diceRollResult.threshold}
 Outcome: ${diceRollResult.success ? "Success" : "Failure"}
-	`
-				: ""}
+` : ""}
+
 Story setup: "${storyPrompt}"
 Player choices so far: [${previousChoices.join(", ")}]
-${diceRollResult ? "" : `The player now says: "${playerChoice}"`}
-		`;
+${diceRollResult ? "" : `The player(s) now say: "${formattedInput}"`}
+`;
 
 		const response = await openai.chat.completions.create({
 			model: "gpt-4",
@@ -160,8 +171,11 @@ const startGame = async (req, res) => {
 };
 
 const playTurn = async (req, res) => {
-	const { sessionId, playerChoice } = req.body;
-	if (!sessionId || !playerChoice) return res.status(400).json({ message: "Missing session ID or player choice." });
+	const { sessionId, playerChoices } = req.body;
+
+	if (!sessionId || !Array.isArray(playerChoices) || playerChoices.length === 0) {
+		return res.status(400).json({ message: "Missing or invalid session ID or player choices." });
+	}
 
 	try {
 		let session = await GameSession.findById(sessionId);
@@ -171,33 +185,42 @@ const playTurn = async (req, res) => {
 			return res.json({ message: "Game has already ended.", endingState: session.endingState });
 		}
 
-		await addToLastLog(sessionId, playerChoice)
+		const formattedInputs = playerChoices.map(p => `${p.characterId}: ${p.choice}`);
+		const combinedLogMessage = formattedInputs.join(" | ");
+
+		await addToLastLog(sessionId, combinedLogMessage);
 
 		const response = await processNarration({
 			session,
 			storyPrompt: session.storyState,
-			playerChoice,
+			playerChoices,
 		});
 
 		res.json(response);
 	} catch (err) {
+		console.error("playTurn error:", err);
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
 };
 
-const processNarration = async ({ session, storyPrompt, playerChoice = null, diceRollResult = null }) => {
-	// TODO: why does generateNarration need storyPrompt?
 
-	//Accepting NPCs
+const processNarration = async ({ session, storyPrompt, playerChoices = null, diceRollResult = null }) => {
 	const story = await Story.findById(session.storyId).populate("npcIds");
 
 	const npcList = story.npcIds.map(npc =>
 		`${npc.title} (${npc.role}) - ${npc.description}`
 	).join(", ");
-	console.log('npcList: ', npcList);
+
+	const formattedChoiceString = playerChoices
+		? playerChoices.map(p => `${p.characterId}: ${p.choice}`).join(" | ")
+		: null;
+
+	const containsEscape = playerChoices
+		? playerChoices.some(p => p.choice.toLowerCase().includes("escape"))
+		: false;
 
 	const narrationResponse = await generateNarration(
-		playerChoice,
+		formattedChoiceString || playerChoices?.[0]?.choice || "", // fallback for safety
 		session._id,
 		storyPrompt,
 		diceRollResult,
@@ -210,8 +233,8 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 	session.rollThreshold = narrationResponse.threshold;
 
 	const logCount = await Log.countDocuments({ sessionId: session._id });
-	console.log(narrationResponse["End of Game"]);
-	if (narrationResponse["End of Game"] || playerChoice?.toLowerCase().includes("escape") || logCount >= MAX_ITERATIONS) {
+
+	if (narrationResponse["End of Game"] || containsEscape || logCount >= MAX_ITERATIONS) {
 		if (narrationResponse["End of Game"]) {
 			session.requirementsMet = true;
 		}
@@ -235,6 +258,7 @@ const processNarration = async ({ session, storyPrompt, playerChoice = null, dic
 		requirementsMet: session.requirementsMet
 	};
 };
+
 
 const addToLastLog = async (sessionId, userInput) => {
 	const lastNarratorLog = await Log.findOne({
