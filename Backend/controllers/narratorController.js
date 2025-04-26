@@ -121,24 +121,18 @@ ${diceRollResult ? "" : `The player(s) now say: "${formattedInput}"`}
 };
 
 const startGame = async (req, res) => {
-	const { storyId, character } = req.body;
+	const { storyId, characters } = req.body;
+
 	if (!storyId) return res.status(400).json({ message: "Missing story ID." });
-	if (!character) return res.status(400).json({ message: "Missing character details." });
+	if (!Array.isArray(characters) || characters.length === 0) {
+		return res.status(400).json({ message: "At least one character is required." });
+	}
 
 	try {
 		const story = await Story.findById(storyId).populate("npcIds");
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
-		// Step 1: Create Character
-		const newCharacter = await createCharacterInDB({
-			name: character.name,
-			race: character.race,
-			characterClass: character.class,
-			background: character.background,
-			stats: character.stats,
-		});
-
-		// Step 2: Create Game Session
+		// Step 1: Create Game Session
 		const storyState = `The adventure begins...\n${story.prompt}`;
 		const session = new GameSession({
 			storyId,
@@ -146,29 +140,47 @@ const startGame = async (req, res) => {
 		});
 		await session.save();
 
-		// Step 3: Link character to session
-		newCharacter.gameSessionId = session._id;
-		await newCharacter.save(); // update character with sessionId
+		// Step 2: Create Characters and link to session
+		const createdCharacters = [];
 
-		// Step 4: Create initial log
+		for (const charData of characters) {
+			const newCharacter = await createCharacterInDB({
+				name: charData.name,
+				race: charData.race,
+				characterClass: charData.class,
+				background: charData.background,
+				stats: charData.stats,
+				gameSessionId: session._id,
+			});
+			createdCharacters.push(newCharacter);
+		}
+
+		// Step 3: Create initial log
 		await Log.create({
 			sessionId: session._id.toString(),
 			context: storyState,
-			userInput: null,
+			userInput: null, // Should we add all characters' names here?
 		});
 
-		// Step 5: Respond
+		// Step 4: Respond
 		res.json({
 			message: `Game started: ${story.title}`,
 			sessionId: session._id.toString(),
 			storyState: session.storyState,
-			characterId: newCharacter._id,
+			characters: createdCharacters.map((char) => ({
+				characterId: char._id,
+				name: char.name,
+				class: char.class,
+				race: char.race,
+			})),
 		});
+
 	} catch (err) {
 		console.error("Server Error:", err);
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
 };
+
 
 const playTurn = async (req, res) => {
 	const { sessionId, playerChoices } = req.body;
