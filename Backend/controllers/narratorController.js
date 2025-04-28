@@ -9,7 +9,8 @@ const PlayerAction = require("../models/PlayerAction");
 const { createCharacterInDB } = require("./characterController");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const MAX_ITERATIONS = 3;
+const MAX_ITERATIONS = 10;
+
 /**
  * AI Narrator Function - Generates AI narration based on past choices
  */
@@ -29,12 +30,16 @@ const generateNarration = async ({
 			});
 		const shouldForceEnd = logs.length >= MAX_ITERATIONS;
 		const previousChoices = logs
+			.filter(log => log.userInput || log.diceRollResult)
 			.map(log => ({
 				context: log.context,
-				userInput: log.userInput.moves.map(move => ({
+				userInput: log.userInput?.moves?.map(move => ({
 					playerId: move.characterId._id.toString(),
 					choice: move.input
-				}))
+				})) || [],
+				diceRollResult: log.diceRollResult
+					? diceRollMessage(log.diceRollResult.diceRoll, log.diceRollResult.threshold)
+					: null
 			}));
 
 		const characters = await Character.find({ gameSessionId: sessionId });
@@ -62,12 +67,14 @@ Respond ONLY in this exact JSON format:
 }
 
 Rules:
-- Only set "requiresRoll": true for actions involving meaningful uncertainty, physical danger, or skill-based risk (e.g., climbing cliffs, disarming traps, attacking enemies).
-- Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
-- When rolling is necessary:
-    - Set threshold between 1-6 (inclusive).
-    - Lower thresholds or remove rolls if the character's relevant stats are high (≥ 4).
-    - Make success harder if relevant stats are low (≤ 2).
+- Only set "requiresRoll": true for actions involving meaningful uncertainty, immediate physical danger, or skill-based challenge.
+- Examples that require a roll: climbing cliffs, disarming traps, attacking enemies, risky spellcasting, dangerous negotiations under pressure.
+- Preparation actions (e.g., drawing weapons, taking cover, preparing spells, bracing for battle) MUST NOT require a roll. They are narrative setup only.
+- Walking, observing, talking, moving to safe locations are safe actions and MUST NOT require a roll.
+- Threshold for rolls should be between 1-6 (inclusive) when necessary.
+- Adjust threshold based on relevant player stats:
+    - Higher stats (≥ 4): lower or no threshold needed
+    - Lower stats (≤ 2): increase difficulty
 - Mapping for stat relevance:
     - Physical actions → strength, dexterity, constitution
     - Mental/magical actions → intelligence, wisdom
@@ -125,7 +132,6 @@ ${JSON.stringify(previousChoices, null, 2)}
 			],
 			max_tokens: 250,
 			temperature: 0.8,
-			response_format: "json"
 		});
 
 		const content = response.choices[0].message.content;
@@ -133,11 +139,7 @@ ${JSON.stringify(previousChoices, null, 2)}
 
 	} catch (error) {
 		console.error("OpenAI API error:", error);
-		return {
-			requiresRoll: false,
-			threshold: null,
-			narration: "The narrator pauses, as if lost in thought..."
-		};
+		throw new Error("Failed to generate narration from OpenAI API.");
 	}
 };
 
@@ -317,6 +319,10 @@ const addToLastLog = async (sessionId, playerChoices) => {
 	}
 };
 
+const diceRollMessage = (diceRoll, threshold) => {
+	return `Player rolled a ${diceRoll} (threshold: ${threshold}) — ${diceRoll >= threshold ? "Success" : "Failure"}`
+}
+
 const rollDice = async (req, res) => {
 	const { sessionId } = req.body;
 	if (!sessionId) return res.status(400).json({ message: "Missing session ID." });
@@ -356,16 +362,13 @@ const rollDice = async (req, res) => {
 			diceRollResult: { success, diceRoll, threshold: lastLog.diceRollResult.threshold }
 		});
 
-		const diceUserMessage = `Player rolled a ${diceRoll} (threshold: ${lastLog.diceRollResult.threshold}) — ${success ? "Success" : "Failure"}`
+		const diceUserMessage = diceRollMessage(diceRoll, lastLog.diceRollResult.threshold);
 
 		res.json({
 			diceRoll,
-			diceUserMessage,
 			rollThreshold: session.rollThreshold,
 			success,
-			message: success
-				? "🎲 Success! Your action goes as planned."
-				: "🎲 Failure. Your attempt didn't quite succeed.",
+			message: diceUserMessage,
 			...response
 		});
 
