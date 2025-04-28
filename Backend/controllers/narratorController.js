@@ -125,6 +125,7 @@ ${JSON.stringify(previousChoices, null, 2)}
 			],
 			max_tokens: 250,
 			temperature: 0.8,
+			response_format: "json"
 		});
 
 		const content = response.choices[0].message.content;
