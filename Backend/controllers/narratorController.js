@@ -55,17 +55,11 @@ const generateNarration = async ({
 You are an AI Dungeon Master for a fantasy text-based game.
 Respond ONLY in this JSON format:
 {
-  "requiresRoll": true | false,
-  "threshold": number | null,
   "narration": "string ending with a question unless 'End of Game' is true",
   "End of Game": true | false
 }
 
 Rules:
-- Only set "requiresRoll": true for actions with meaningful uncertainty, physical danger, or skill-based risk.
-- Examples: climbing cliffs, disarming traps, attacking enemies.
-- Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
-- Choose a threshold between 1-6 (inclusive) when rolling is necessary.
 - The player's character is provided as JSON and includes attributes such as class, race, background, and stats.
 - Mention the character's background or class in narration if contextually relevant, to enhance immersion.
 - Do not contradict the player's stats in narration. For example, avoid describing clumsiness if dexterity is high.
@@ -73,9 +67,7 @@ Rules:
     - Physical actions → strength, dexterity, constitution
     - Mental/magical actions → intelligence, wisdom
     - Social/influence actions → charisma
-- If the character has high relevant stats (≥ 4), consider lowering thresholds or removing dice rolls entirely for appropriate actions.
-- If the character has low relevant stats (≤ 2), make success more difficult or describe risks accordingly.
-- narration should be concise (2-3 sentences) and end with an open-ended question.
+- narration should be concise (2-3 sentences).
 - Set "End of Game": true and generate the ending narration without a question mark and suitable for ending the game ONLY IN THIS CASE if anything in the past logs seem even slightly similar to meeting these following requirements: ${JSON.stringify(requirements)}.
 - Try to guide the player to eventually meet the requirement from the beginning itself in every response as required in this: ${JSON.stringify(requirements)}.
 - Make sure when you read the player choices in every response you are very sensitive to the player's choices and consider the game as ended even if the choices very slightly resemble the requirements.
@@ -93,7 +85,7 @@ ${shouldForceEnd ? `
 
 NPCs present in the story: ${npcList}
 
-Characters in the game: ${JSON.stringify(charactersArray, null, 2)}
+Playable characters in the game: ${JSON.stringify(charactersArray, null, 2)}
 
 ${diceRollResult ? `
 The player's last action required a dice roll.
@@ -281,7 +273,7 @@ const processNarration = async ({ session, playerChoices = null, diceRollResult 
 const addToLastLog = async (sessionId, playerChoices) => {
 	const lastNarratorLog = await Log.findOne({
 		sessionId,
-		userInput: { $exists: false }
+		userInput: null
 	}).sort({ timestamp: -1 });
 
 	if (lastNarratorLog) {
