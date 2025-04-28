@@ -4,10 +4,13 @@ const GameSession = require("../models/GameSession");
 const Log = require("../models/Logs");
 const Story = require('../models/Stories');
 const Character = require("../models/Character");
+const PlayerAction = require("../models/PlayerAction");
+
 const { createCharacterInDB } = require("./characterController");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const MAX_ITERATIONS = 3;
+const MAX_ITERATIONS = 10;
+
 /**
  * AI Narrator Function - Generates AI narration based on past choices
  */
@@ -20,21 +23,34 @@ const generateNarration = async ({
 	requirements = []
 }) => {
 	try {
-		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
-		const previousChoices = logs.map(log => log.userInput);
+		const logs = await Log.find({ sessionId })
+			.sort({ timestamp: 1 })
+			.populate({
+				path: "userInput",
+			});
 		const shouldForceEnd = logs.length >= MAX_ITERATIONS;
+		const previousChoices = logs
+			.filter(log => log.userInput || log.diceRollResult)
+			.map(log => ({
+				context: log.context,
+				userInput: log.userInput?.moves?.map(move => ({
+					playerId: move.characterId._id.toString(),
+					choice: move.input
+				})) || [],
+				diceRollResult: log.diceRollResult
+					? diceRollMessage(log.diceRollResult.diceRoll, log.diceRollResult.threshold)
+					: null
+			}));
 
-		// Fetch character (first one for now — for prompt context)
-		const character = await Character.findOne({ gameSessionId: sessionId });
-		const characterJSON = character
-			? JSON.stringify({
-				name: character.name,
-				race: character.race,
-				class: character.class,
-				background: character.background,
-				stats: character.stats
-			}, null, 2)
-			: "null";
+		const characters = await Character.find({ gameSessionId: sessionId });
+		const charactersArray = characters.map(character => ({
+			characterId: character._id.toString(),
+			name: character.name,
+			race: character.race,
+			class: character.class,
+			background: character.background,
+			stats: character.stats
+		}));
 
 		const formattedInput = Array.isArray(playerChoices)
 			? playerChoices.map(p => `${p.characterId}: "${p.choice}"`).join(" | ")
@@ -42,7 +58,7 @@ const generateNarration = async ({
 
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
-Respond ONLY in this JSON format:
+Respond ONLY in this exact JSON format:
 {
   "requiresRoll": true | false,
   "threshold": number | null,
@@ -51,50 +67,61 @@ Respond ONLY in this JSON format:
 }
 
 Rules:
-- Only set "requiresRoll": true for actions with meaningful uncertainty, physical danger, or skill-based risk.
-- Examples: climbing cliffs, disarming traps, attacking enemies.
-- Everyday or harmless actions (e.g., talking, exploring, observing, walking) should NOT require a roll.
-- Choose a threshold between 1-6 (inclusive) when rolling is necessary.
-- The player's character is provided as JSON and includes attributes such as class, race, background, and stats.
-- Mention the character's background or class in narration if contextually relevant, to enhance immersion.
-- Do not contradict the player's stats in narration. For example, avoid describing clumsiness if dexterity is high.
-- Use the following mapping for stat relevance:
+- Only set "requiresRoll": true for actions involving meaningful uncertainty, immediate physical danger, or skill-based challenge.
+- Examples that require a roll: climbing cliffs, disarming traps, attacking enemies, risky spellcasting, dangerous negotiations under pressure.
+- Preparation actions (e.g., drawing weapons, taking cover, preparing spells, bracing for battle) MUST NOT require a roll. They are narrative setup only.
+- Walking, observing, talking, moving to safe locations are safe actions and MUST NOT require a roll.
+- Threshold for rolls should be between 1-6 (inclusive) when necessary.
+- Adjust threshold based on relevant player stats:
+    - Higher stats (≥ 4): lower or no threshold needed
+    - Lower stats (≤ 2): increase difficulty
+- Mapping for stat relevance:
     - Physical actions → strength, dexterity, constitution
     - Mental/magical actions → intelligence, wisdom
     - Social/influence actions → charisma
-- If the character has high relevant stats (≥ 4), consider lowering thresholds or removing dice rolls entirely for appropriate actions.
-- If the character has low relevant stats (≤ 2), make success more difficult or describe risks accordingly.
-- narration should be concise (2-3 sentences) and end with an open-ended question.
-- Set "End of Game": true and generate the ending narration without a question mark and suitable for ending the game ONLY IN THIS CASE if anything in the past logs seem even slightly similar to meeting these following requirements: ${JSON.stringify(requirements)}.
-- Try to guide the player to eventually meet the requirement from the beginning itself in every response as required in this: ${JSON.stringify(requirements)}.
-- Make sure when you read the player choices in every response you are very sensitive to the player's choices and consider the game as ended even if the choices very slightly resemble the requirements.
-- Whenever you decide to set "End of Game": true, make sure the "narration" is suitable for ending the game.
-- NPCs must only be mentioned or referenced if they were already introduced to the player earlier in the story or are contextually entering the scene for the first time.
-- Do NOT assume the player already knows who an NPC is unless the NPC was described or interacted with earlier.
-- When introducing a new NPC for the first time, clearly state their name, role, and basic description in the narration.
-- Avoid using phrases like "as you already know" or referring to past interactions with NPCs that did not actually happen.
-- Do NOT explain anything outside the JSON. No extra text.
-- Do NOT offer predefined choices.
-${shouldForceEnd ? `
-- This story has gone on for too long without resolution. You MUST end the game now with a loss for the player.
-- Set "End of Game": true and write a graceful defeat narration without a question mark.
-- Do not give the player another choice or prompt.` : ""}
+- narration must be concise (2-3 sentences) and end with an open-ended question (unless ending the game).
+- narration should mention the character's class or background if relevant, but never contradict their stats.
+- Do not offer predefined choices.
+- Do NOT explain anything outside the JSON format. No extra commentary.
 
+Ending Rules:
+- If player actions (even slightly) match these requirements: ${JSON.stringify(requirements)}
+    - Set "End of Game": true.
+    - narration must not end with a question mark, and must feel final/suitable for an ending.
+    - Be highly sensitive to matching player choices against these requirements.
+- Always subtly guide players toward meeting the requirements when possible.
+${shouldForceEnd ? `
+- The story has continued too long without resolution.
+- You MUST end the game now with a graceful defeat narration (no question mark).
+- Do not offer another choice or prompt.` : ""}
+
+NPC Handling Rules:
+- NPCs must only be mentioned if they have been previously introduced or are contextually entering the scene for the first time.
+- When introducing a new NPC:
+    - Clearly state their name, role, and a basic description.
+- Do not assume prior knowledge of an NPC.
+- Avoid phrases like "as you already know" or false memories.
+
+Game Setup:
 NPCs present in the story: ${npcList}
 
-Player Character JSON:
-${characterJSON}
+Playable characters in the game:
+${JSON.stringify(charactersArray, null, 2)}
 
 ${diceRollResult ? `
-The player's last action required a dice roll.
-Dice Result: ${diceRollResult.diceRoll}
-Threshold to Succeed: ${diceRollResult.threshold}
-Outcome: ${diceRollResult.success ? "Success" : "Failure"}
-` : ""}
+The player's last action required a dice roll:
+- Threshold to Succeed: ${diceRollResult.threshold}
+- Outcome: ${diceRollResult.success ? "Success" : "Failure"}
+- Dice Roll Result: ${diceRollResult.diceRoll}
+` : `
+The player(s) just made choices based on the previous narration.
+`}
 
-Story setup: "${storyPrompt}"
-Player choices so far: [${previousChoices.join(", ")}]
-${diceRollResult ? "" : `The player(s) now say: "${formattedInput}"`}
+Story setup:
+"${storyPrompt}"
+
+Player choices so far:
+${JSON.stringify(previousChoices, null, 2)}
 `;
 
 		const response = await openai.chat.completions.create({
@@ -112,11 +139,7 @@ ${diceRollResult ? "" : `The player(s) now say: "${formattedInput}"`}
 
 	} catch (error) {
 		console.error("OpenAI API error:", error);
-		return {
-			requiresRoll: false,
-			threshold: null,
-			narration: "The narrator pauses, as if lost in thought..."
-		};
+		throw new Error("Failed to generate narration from OpenAI API.");
 	}
 };
 
@@ -190,7 +213,12 @@ const startGame = async (req, res) => {
 
 const playTurn = async (req, res) => {
 	const { sessionId, playerChoices } = req.body;
-
+	/*
+		playerChoices = [
+			{ characterId: "characterId1", choice: "user's input" },
+			{ characterId: "characterId2", choice: "user's input" }
+		]	
+	*/
 	if (!sessionId || !Array.isArray(playerChoices) || playerChoices.length === 0) {
 		return res.status(400).json({ message: "Missing or invalid session ID or player choices." });
 	}
@@ -203,14 +231,10 @@ const playTurn = async (req, res) => {
 			return res.json({ message: "Game has already ended.", endingState: session.endingState });
 		}
 
-		const formattedInputs = playerChoices.map(p => `${p.characterId}: ${p.choice}`);
-		const combinedLogMessage = formattedInputs.join(" | ");
-
-		await addToLastLog(sessionId, combinedLogMessage);
+		await addToLastLog(sessionId, playerChoices ?? []);
 
 		const response = await processNarration({
 			session,
-			storyPrompt: session.storyState,
 			playerChoices,
 		});
 
@@ -222,29 +246,25 @@ const playTurn = async (req, res) => {
 };
 
 
-const processNarration = async ({ session, storyPrompt, playerChoices = null, diceRollResult = null }) => {
+const processNarration = async ({ session, playerChoices = null, diceRollResult = null }) => {
 	const story = await Story.findById(session.storyId).populate("npcIds");
 
 	const npcList = story.npcIds.map(npc =>
 		`${npc.title} (${npc.role}) - ${npc.description}`
 	).join(", ");
 
-	const formattedChoiceString = playerChoices
-		? playerChoices.map(p => `${p.characterId}: ${p.choice}`).join(" | ")
-		: null;
-
+	// TODO: escape logic seems to be broken, fix it later
 	const containsEscape = playerChoices
 		? playerChoices.some(p => p.choice.toLowerCase().includes("escape"))
 		: false;
 
-	const narrationResponse = await generateNarration(
-		formattedChoiceString || playerChoices?.[0]?.choice || "", // fallback for safety
-		session._id,
-		storyPrompt,
+	const narrationResponse = await generateNarration({
+		sessionId: session._id,
+		storyPrompt: story.prompt,
 		diceRollResult,
 		npcList,
-		story.requirements
-	);
+		requirements: story.requirements
+	});
 
 	session.storyState = narrationResponse.narration;
 	session.requiresRoll = narrationResponse.requiresRoll;
@@ -265,7 +285,12 @@ const processNarration = async ({ session, storyPrompt, playerChoices = null, di
 	await Log.create({
 		sessionId: session._id,
 		context: narrationResponse.requiresRoll ? `[Dice roll required]: ${narrationResponse.narration}` : narrationResponse.narration,
-		userInput: null
+		userInput: null,
+		diceRollResult: narrationResponse.requiresRoll ? {
+			diceRoll: null, // Player will roll later
+			threshold: narrationResponse.threshold,
+			success: null
+		} : undefined
 	});
 
 	return {
@@ -278,24 +303,30 @@ const processNarration = async ({ session, storyPrompt, playerChoices = null, di
 };
 
 
-const addToLastLog = async (sessionId, userInput) => {
+const addToLastLog = async (sessionId, playerChoices) => {
 	const lastNarratorLog = await Log.findOne({
 		sessionId,
-		userInput: {
-			$in: [null, ""]
-		}
+		userInput: null
 	}).sort({ timestamp: -1 });
+
 	if (lastNarratorLog) {
-		lastNarratorLog.userInput = userInput;
+		const playerAction = await PlayerAction.create({
+			logId: lastNarratorLog._id,
+			moves: playerChoices.map(choice => ({
+				characterId: choice.characterId,
+				input: choice.choice
+			}))
+		});
+
+		lastNarratorLog.userInput = playerAction._id;
 		await lastNarratorLog.save();
 	} else {
-		// If no pending log found, fallback to creating a new log
-		await Log.create({
-			sessionId,
-			context: null,
-			userInput
-		});
+		throw new Error("No pending narrator log found. Cannot add player choices without narrator context.");
 	}
+};
+
+const diceRollMessage = (diceRoll, threshold) => {
+	return `Player rolled a ${diceRoll} (threshold: ${threshold}) — ${diceRoll >= threshold ? "Success" : "Failure"}`
 }
 
 const rollDice = async (req, res) => {
@@ -308,31 +339,47 @@ const rollDice = async (req, res) => {
 			return res.status(400).json({ message: "No roll required for this session." });
 		}
 
+		// Step 1: Roll the dice
 		const diceRoll = Math.floor(Math.random() * 6) + 1;
 		const success = diceRoll >= session.rollThreshold;
-		const userInput = `Player rolled a ${diceRoll} (threshold: ${session.rollThreshold}) — ${success ? "Success" : "Failure"}`;
-		await addToLastLog(sessionId, userInput)
 
-		const story = await Story.findById(session.storyId);
+		// Step 2: Update the latest narrator log with the dice roll result
+		const lastLog = await Log.findOne({
+			sessionId,
+			"diceRollResult.diceRoll": null
+		}).sort({ timestamp: -1 });
 
+		if (!lastLog) {
+			return res.status(400).json({ message: "No pending dice roll log found." });
+		}
+
+		lastLog.diceRollResult.diceRoll = diceRoll;
+		lastLog.diceRollResult.success = success;
+		await lastLog.save();
+
+		// Step 3: Update GameSession to clear roll requirement
+		session.requiresRoll = false;
+		session.rollThreshold = null;
+		await session.save();
+
+		// Step 4: Continue narration after dice result
 		const response = await processNarration({
 			session,
-			storyPrompt: story.prompt,
-			diceRollResult: { success, diceRoll, threshold: session.rollThreshold }
+			diceRollResult: { success, diceRoll, threshold: lastLog.diceRollResult.threshold }
 		});
+
+		const diceUserMessage = diceRollMessage(diceRoll, lastLog.diceRollResult.threshold);
 
 		res.json({
 			diceRoll,
-			diceUserMessage: userInput,
 			rollThreshold: session.rollThreshold,
 			success,
-			message: success
-				? "🎲 Success! Your action goes as planned."
-				: "🎲 Failure. Your attempt didn't quite succeed.",
+			message: diceUserMessage,
 			...response
 		});
 
 	} catch (err) {
+		console.error("rollDice error:", err);
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
 };
