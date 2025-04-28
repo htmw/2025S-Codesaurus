@@ -93,7 +93,16 @@ Outcome: ${diceRollResult.success ? "Success" : "Failure"}
 ` : ""}
 
 Story setup: "${storyPrompt}"
-Player choices so far: [${previousChoices.join(", ")}]
+Player choices so far: [{
+	context: "narrator's previous narration",
+	userInput: [{ playerId: "characterId", choice: "user's input" }, { playerId: "characterId", choice: "user's input" }]
+},{
+	context: "narrator's previous narration",
+	userInput: [{ playerId: "characterId", choice: "user's input" }, { playerId: "characterId", choice: "user's input" }]
+}, {
+	context: "narrator's current narration",
+	userInput: currentPlayerChoices
+}]
 ${diceRollResult ? "" : `The player(s) now say: "${formattedInput}"`}
 `;
 
@@ -184,7 +193,12 @@ const startGame = async (req, res) => {
 
 const playTurn = async (req, res) => {
 	const { sessionId, playerChoices } = req.body;
-
+	/*
+		playerChoices = [
+			{ characterId: "characterId1", choice: "user's input" },
+			{ characterId: "characterId2", choice: "user's input" }
+		]	
+	*/
 	if (!sessionId || !Array.isArray(playerChoices) || playerChoices.length === 0) {
 		return res.status(400).json({ message: "Missing or invalid session ID or player choices." });
 	}
@@ -197,10 +211,7 @@ const playTurn = async (req, res) => {
 			return res.json({ message: "Game has already ended.", endingState: session.endingState });
 		}
 
-		const formattedInputs = playerChoices.map(p => `${p.characterId}: ${p.choice}`);
-		const combinedLogMessage = formattedInputs.join(" | ");
-
-		await addToLastLog(sessionId, combinedLogMessage);
+		await addToLastLog(sessionId, playerChoices);
 
 		const response = await processNarration({
 			session,
@@ -272,25 +283,27 @@ const processNarration = async ({ session, storyPrompt, playerChoices = null, di
 };
 
 
-const addToLastLog = async (sessionId, userInput) => {
+const addToLastLog = async (sessionId, playerChoices) => {
 	const lastNarratorLog = await Log.findOne({
 		sessionId,
-		userInput: {
-			$in: [null, ""]
-		}
+		userInput: { $exists: false }
 	}).sort({ timestamp: -1 });
+
 	if (lastNarratorLog) {
-		lastNarratorLog.userInput = userInput;
+		const playerAction = await PlayerAction.create({
+			logId: lastNarratorLog._id,
+			moves: playerChoices.map(choice => ({
+				characterId: choice.characterId,
+				input: choice.choice
+			}))
+		});
+
+		lastNarratorLog.userInput = playerAction._id;
 		await lastNarratorLog.save();
 	} else {
-		// If no pending log found, fallback to creating a new log
-		await Log.create({
-			sessionId,
-			context: null,
-			userInput
-		});
+		throw new Error("No pending narrator log found. Cannot add player choices without narrator context.");
 	}
-}
+};
 
 const rollDice = async (req, res) => {
 	const { sessionId } = req.body;
