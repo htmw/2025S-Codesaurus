@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Container, Form, Row, Col, Button, Card, Tabs, Tab } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Plus } from 'react-bootstrap-icons';
+import { Plus, Dash } from 'react-bootstrap-icons';
 
 
 const API_BASE_URL = "http://localhost:8081/api";
@@ -72,7 +72,7 @@ const CharacterPage = () => {
         alert("No story selected."); // TODO: toast message
         return;
       }
-
+      
       const gameRes = await fetch(`${API_BASE_URL}/start-game`, {
         method: "POST",
         headers: {
@@ -98,12 +98,19 @@ const CharacterPage = () => {
     }
   };
 
+  const handleRemoveTab = () => {
+    if (characters.length > 1) {
+      setCharacters(prev => prev.slice(0, -1)); // Remove last character
+      setActiveTab(prev => Math.max(0, prev - 1)); // Move activeTab back if needed
+    }
+  };
+  
 
   return (
     <Container className="theme-page" fluid>
       <h1 className="theme-header mb-4">Character Creation</h1>
   
-      {/* Tabs + Plus Button */}
+      
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div className="flex-grow-1">
           <Tabs
@@ -199,14 +206,25 @@ const CharacterPage = () => {
           </Tabs>
         </div>
   
-        {/* Plus Button next to Tabs */}
-        <Button
-          variant="outline-warning"
-          className="ms-2"
-          onClick={handleAddTab}
-        >
-          <Plus />
-        </Button>
+        {/* Plus and Minus Button next to Tabs */}
+        <div className="d-flex">
+          <Button
+            variant="outline-warning"
+            className="ms-2"
+            onClick={handleAddTab}
+          >
+            <Plus />
+          </Button>
+
+          <Button
+            variant="outline-danger"
+            className="ms-2"
+            onClick={handleRemoveTab}
+            disabled={characters.length <= 1}
+          >
+            <Dash />
+          </Button>
+        </div> 
       </div>
   
       {/* Global Continue button */}
