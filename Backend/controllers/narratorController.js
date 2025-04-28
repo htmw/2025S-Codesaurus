@@ -4,6 +4,8 @@ const GameSession = require("../models/GameSession");
 const Log = require("../models/Logs");
 const Story = require('../models/Stories');
 const Character = require("../models/Character");
+const PlayerAction = require("../models/PlayerAction");
+
 const { createCharacterInDB } = require("./characterController");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -20,21 +22,30 @@ const generateNarration = async ({
 	requirements = []
 }) => {
 	try {
-		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
-		const previousChoices = logs.map(log => log.userInput);
+		const logs = await Log.find({ sessionId })
+			.sort({ timestamp: 1 })
+			.populate({
+				path: "userInput",
+			});
 		const shouldForceEnd = logs.length >= MAX_ITERATIONS;
+		const previousChoices = logs
+			.map(log => ({
+				context: log.context,
+				userInput: log.userInput.moves.map(move => ({
+					playerId: move.characterId._id.toString(),
+					choice: move.input
+				}))
+			}));
 
-		// Fetch character (first one for now — for prompt context)
-		const character = await Character.findOne({ gameSessionId: sessionId });
-		const characterJSON = character
-			? JSON.stringify({
-				name: character.name,
-				race: character.race,
-				class: character.class,
-				background: character.background,
-				stats: character.stats
-			}, null, 2)
-			: "null";
+		const characters = await Character.find({ gameSessionId: sessionId });
+		const charactersArray = characters.map(character => ({
+			characterId: character._id.toString(),
+			name: character.name,
+			race: character.race,
+			class: character.class,
+			background: character.background,
+			stats: character.stats
+		}));
 
 		const formattedInput = Array.isArray(playerChoices)
 			? playerChoices.map(p => `${p.characterId}: "${p.choice}"`).join(" | ")
@@ -82,28 +93,17 @@ ${shouldForceEnd ? `
 
 NPCs present in the story: ${npcList}
 
-Player Character JSON:
-${characterJSON}
+Characters in the game: ${JSON.stringify(charactersArray, null, 2)}
 
 ${diceRollResult ? `
 The player's last action required a dice roll.
-Dice Result: ${diceRollResult.diceRoll}
 Threshold to Succeed: ${diceRollResult.threshold}
 Outcome: ${diceRollResult.success ? "Success" : "Failure"}
 ` : ""}
 
 Story setup: "${storyPrompt}"
-Player choices so far: [{
-	context: "narrator's previous narration",
-	userInput: [{ playerId: "characterId", choice: "user's input" }, { playerId: "characterId", choice: "user's input" }]
-},{
-	context: "narrator's previous narration",
-	userInput: [{ playerId: "characterId", choice: "user's input" }, { playerId: "characterId", choice: "user's input" }]
-}, {
-	context: "narrator's current narration",
-	userInput: currentPlayerChoices
-}]
-${diceRollResult ? "" : `The player(s) now say: "${formattedInput}"`}
+Player choices so far: ${JSON.stringify(previousChoices, null, 2)}
+${diceRollResult ? `Dice Roll Result: ${diceRollResult.diceRoll}` : `The player(s) now say: "${previousChoices[previousChoices.length - 1]}"`}
 `;
 
 		const response = await openai.chat.completions.create({
@@ -215,7 +215,6 @@ const playTurn = async (req, res) => {
 
 		const response = await processNarration({
 			session,
-			storyPrompt: session.storyState,
 			playerChoices,
 		});
 
@@ -227,29 +226,25 @@ const playTurn = async (req, res) => {
 };
 
 
-const processNarration = async ({ session, storyPrompt, playerChoices = null, diceRollResult = null }) => {
+const processNarration = async ({ session, playerChoices = null, diceRollResult = null }) => {
 	const story = await Story.findById(session.storyId).populate("npcIds");
 
 	const npcList = story.npcIds.map(npc =>
 		`${npc.title} (${npc.role}) - ${npc.description}`
 	).join(", ");
 
-	const formattedChoiceString = playerChoices
-		? playerChoices.map(p => `${p.characterId}: ${p.choice}`).join(" | ")
-		: null;
-
+	// TODO: escape logic seems to be broken, fix it later
 	const containsEscape = playerChoices
 		? playerChoices.some(p => p.choice.toLowerCase().includes("escape"))
 		: false;
 
-	const narrationResponse = await generateNarration(
-		formattedChoiceString || playerChoices?.[0]?.choice || "", // fallback for safety
-		session._id,
-		storyPrompt,
+	const narrationResponse = await generateNarration({
+		sessionId: session._id,
+		storyPrompt: story.prompt,
 		diceRollResult,
 		npcList,
-		story.requirements
-	);
+		requirements: story.requirements
+	});
 
 	session.storyState = narrationResponse.narration;
 	session.requiresRoll = narrationResponse.requiresRoll;
@@ -318,13 +313,10 @@ const rollDice = async (req, res) => {
 		const diceRoll = Math.floor(Math.random() * 6) + 1;
 		const success = diceRoll >= session.rollThreshold;
 		const userInput = `Player rolled a ${diceRoll} (threshold: ${session.rollThreshold}) — ${success ? "Success" : "Failure"}`;
-		await addToLastLog(sessionId, userInput)
-
-		const story = await Story.findById(session.storyId);
+		await addToLastLog(sessionId, userInput);
 
 		const response = await processNarration({
 			session,
-			storyPrompt: story.prompt,
 			diceRollResult: { success, diceRoll, threshold: session.rollThreshold }
 		});
 
