@@ -132,6 +132,12 @@ const startGame = async (req, res) => {
 		const story = await Story.findById(storyId).populate("npcIds");
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
+		if (characters.length > story.maxPlayers) {
+			return res.status(400).json({ 
+				message: `Maximum ${story.maxPlayers} players allowed for this story.` 
+			});
+		}
+
 		// Step 1: Create Game Session
 		const storyState = `The adventure begins...\n${story.prompt}`;
 		const session = new GameSession({

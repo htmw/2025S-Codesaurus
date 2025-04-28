@@ -4,7 +4,7 @@ const NPC = require('../models/NPC');
 
 // POST route to create a new story
 const saveStory = async (req, res) => {
-    const { title, description, themeId, prompt, narrator_tone, duration, npcIds } = req.body;
+    const { title, description, themeId, prompt, narrator_tone, duration, npcIds, maxPlayers } = req.body;
     // Ensure the title is provided
     if (!title) {
         return res.status(400).json({ message: "title is required" });
@@ -14,6 +14,9 @@ const saveStory = async (req, res) => {
     }
     if (!prompt) {
         return res.status(400).json({ message: "prompt is required" });
+    }
+    if (!maxPlayers || typeof maxPlayers !== "number" || maxPlayers < 1) {
+        return res.status(400).json({ message: "Minimum 1 player requried" });
     }
 
     try {
@@ -43,7 +46,8 @@ const saveStory = async (req, res) => {
             prompt,
             narrator_tone,
             duration,
-            npcIds: validNpcIds
+            npcIds: validNpcIds,
+            maxPlayers 
         });
 
         await newStory.save();  // Save the Story to the database
