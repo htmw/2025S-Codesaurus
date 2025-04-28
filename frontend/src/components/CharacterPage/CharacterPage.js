@@ -110,8 +110,8 @@ const CharacterPage = () => {
     <Container className="theme-page" fluid>
       <h1 className="theme-header mb-4">Character Creation</h1>
   
-      
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex align-items-center mb-3">
+        {/* Tabs */}
         <div className="flex-grow-1">
           <Tabs
             id="character-tabs"
@@ -124,110 +124,115 @@ const CharacterPage = () => {
                 eventKey={index}
                 title={`Character ${index + 1}`}
                 key={index}
-              >
-                {/* Character Form inside Tab */}
-                <Container className="d-flex justify-content-center align-items-center">
-                  <Card>
-                    <Card.Body>
-                      <Form>
-                        <Form.Group className="mb-3">
-                          <Form.Label className="text-warning fw-semibold">Name</Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="name"
-                            value={char.name}
-                            onChange={(e) => handleChange(e, index)}
-                            placeholder="Your character's name"
-                            className="bg-dark-subtle border-0"
-                          />
-                        </Form.Group>
-  
-                        <Form.Group className="mb-3">
-                          <Form.Label className="text-warning fw-semibold">Race</Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="race"
-                            value={char.race}
-                            onChange={(e) => handleChange(e, index)}
-                            placeholder="Elf, Orc, Human..."
-                            className="bg-dark-subtle border-0"
-                          />
-                        </Form.Group>
-  
-                        <Form.Group className="mb-3">
-                          <Form.Label className="text-warning fw-semibold">Class</Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="class"
-                            value={char.class}
-                            onChange={(e) => handleChange(e, index)}
-                            placeholder="Wizard, Rogue, Warrior..."
-                            className="bg-dark-subtle border-0"
-                          />
-                        </Form.Group>
-  
-                        <Form.Group className="mb-4">
-                          <Form.Label className="text-warning fw-semibold">Background</Form.Label>
-                          <Form.Control
-                            as="textarea"
-                            rows={2}
-                            name="background"
-                            value={char.background}
-                            onChange={(e) => handleChange(e, index)}
-                            placeholder="Brief background or traits"
-                            className="bg-dark-subtle border-0"
-                          />
-                        </Form.Group>
-  
-                        <Row>
-                          {Object.entries(char.stats).map(([key, value]) => (
-                            <Col xs={6} md={4} key={key} className="mb-3">
-                              <Form.Label className="text-capitalize text-warning fw-semibold">
-                                {key} (1-10)
-                              </Form.Label>
-                              <Form.Control
-                                type="number"
-                                name={key}
-                                min="1"
-                                max="10"
-                                value={value}
-                                onChange={(e) => handleChange(e, index)}
-                                className="bg-dark-subtle border-0"
-                              />
-                            </Col>
-                          ))}
-                        </Row>
-                      </Form>
-                    </Card.Body>
-                  </Card>
-                </Container>
-              </Tab>
+              />
             ))}
           </Tabs>
         </div>
   
-        {/* Plus and Minus Button next to Tabs */}
-        <div className="d-flex">
+        {/* Plus and Minus Buttons next to Tabs */}
+        <div className="d-flex ms-2">
           <Button
             variant="outline-warning"
-            className="ms-2"
+            className="me-2"
+            size="sm"
             onClick={handleAddTab}
           >
             <Plus />
           </Button>
-
+  
           <Button
             variant="outline-danger"
-            className="ms-2"
+            size="sm"
             onClick={handleRemoveTab}
             disabled={characters.length <= 1}
           >
             <Dash />
           </Button>
-        </div> 
+        </div>
       </div>
   
-      {/* Global Continue button */}
+      {/* Tab Content Below */}
+      {characters.map((char, index) => (
+        activeTab === index && (
+          <Container key={index} className="d-flex justify-content-center align-items-center">
+            <Card>
+              <Card.Body>
+                <Form>
+                  <Form.Group className="mb-3">
+                    <Form.Label className="text-warning fw-semibold">Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="name"
+                      value={char.name}
+                      onChange={(e) => handleChange(e, index)}
+                      placeholder="Your character's name"
+                      className="bg-dark-subtle border-0"
+                    />
+                  </Form.Group>
+  
+                  <Form.Group className="mb-3">
+                    <Form.Label className="text-warning fw-semibold">Race</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="race"
+                      value={char.race}
+                      onChange={(e) => handleChange(e, index)}
+                      placeholder="Elf, Orc, Human..."
+                      className="bg-dark-subtle border-0"
+                    />
+                  </Form.Group>
+  
+                  <Form.Group className="mb-3">
+                    <Form.Label className="text-warning fw-semibold">Class</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="class"
+                      value={char.class}
+                      onChange={(e) => handleChange(e, index)}
+                      placeholder="Wizard, Rogue, Warrior..."
+                      className="bg-dark-subtle border-0"
+                    />
+                  </Form.Group>
+  
+                  <Form.Group className="mb-4">
+                    <Form.Label className="text-warning fw-semibold">Background</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      name="background"
+                      value={char.background}
+                      onChange={(e) => handleChange(e, index)}
+                      placeholder="Brief background or traits"
+                      className="bg-dark-subtle border-0"
+                    />
+                  </Form.Group>
+  
+                  <Row>
+                    {Object.entries(char.stats).map(([key, value]) => (
+                      <Col xs={6} md={4} key={key} className="mb-3">
+                        <Form.Label className="text-capitalize text-warning fw-semibold">
+                          {key} (1-10)
+                        </Form.Label>
+                        <Form.Control
+                          type="number"
+                          name={key}
+                          min="1"
+                          max="10"
+                          value={value}
+                          onChange={(e) => handleChange(e, index)}
+                          className="bg-dark-subtle border-0"
+                        />
+                      </Col>
+                    ))}
+                  </Row>
+                </Form>
+              </Card.Body>
+            </Card>
+          </Container>
+        )
+      ))}
+  
+      {/* Global Continue Button */}
       <div className="d-flex justify-content-end mt-4">
         <Button
           variant="warning"
@@ -238,7 +243,7 @@ const CharacterPage = () => {
         </Button>
       </div>
     </Container>
-  );  
+  );   
 };
 
 export default CharacterPage;
