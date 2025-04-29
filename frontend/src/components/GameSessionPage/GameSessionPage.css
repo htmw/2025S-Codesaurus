@@ -18,6 +18,11 @@
 	justify-content: space-between;
 }
 
+.mic-button {
+    margin-left: 5px;
+}
+
+
 .chat-header {
 	font-size: 22px;
 	font-weight: bold;

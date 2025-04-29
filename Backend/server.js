@@ -9,6 +9,10 @@ const characterRoutes = require("./routes/characterRoutes");
 const themeRoutes = require("./routes/themeRoutes"); // Theme routes
 const storyRoutes = require("./routes/storyRoutes"); // Story routes
 const npcRoutes = require("./routes/npcRoutes"); //NPC routes
+const voiceRoutes = require("./routes/voiceRoutes");
+
+
+
 
 
 const app = express();
@@ -35,6 +39,8 @@ app.get("/", (req, res) => {
 app.use("/api", logRoutes);
 app.use("/api", narratorRoutes);
 app.use("/api", characterRoutes); //Characters
+
+app.use('/api/voice', voiceRoutes); // TTS and STT
 
 app.use("/api", themeRoutes); //Theme
 app.use("/api", storyRoutes); //Story
