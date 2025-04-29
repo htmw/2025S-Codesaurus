@@ -3,7 +3,6 @@ import { Container, Form, Row, Col, Button, Card, Tabs, Tab } from "react-bootst
 import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, Dash } from 'react-bootstrap-icons';
 
-
 const API_BASE_URL = "http://localhost:8081/api";
 
 const CharacterPage = () => {
@@ -24,6 +23,7 @@ const CharacterPage = () => {
     },
   ]);
   const [activeTab, setActiveTab] = useState(0);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -72,7 +72,7 @@ const CharacterPage = () => {
         alert("No story selected."); // TODO: toast message
         return;
       }
-      
+
       const gameRes = await fetch(`${API_BASE_URL}/start-game`, {
         method: "POST",
         headers: {
@@ -90,7 +90,6 @@ const CharacterPage = () => {
 
       localStorage.setItem("sessionId", gameData.sessionId);
 
-      // STEP 4: Navigate to game session with storyId as query param
       navigate(`/gameSession?story=${storyId}`, { state: { story: storyId } });
     } catch (error) {
       console.error("Error during submission:", error);
@@ -104,134 +103,213 @@ const CharacterPage = () => {
       setActiveTab(prev => Math.max(0, prev - 1)); // Move activeTab back if needed
     }
   };
-  
+
 
   return (
     <Container className="theme-page" fluid>
       <h1 className="theme-header mb-4">Character Creation</h1>
-  
-      <div className="d-flex align-items-center mb-3">
-        {/* Tabs */}
-        <div className="flex-grow-1">
-          <Tabs
-            id="character-tabs"
-            activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k)}
-            className="mb-0"
-          >
-            {characters.map((char, index) => (
+      {/* <pre>
+        {JSON.stringify(characters, null, 2)}
+      </pre> */}
+      <div className="d-flex justify-content-center bg-quest-secondary bd-highlight">
+        <div class="p-2 flex-column bg-quest bd-highlight">
+          <div className="button-container d-flex flex-column align-items-center">
+            <Button variant="warning" className="m-1 w-100" onClick={handleAddTab}>
+              <Plus size={20} />
+            </Button>
+          </div>
+          <div className="d-flex flex-column align-items-center">
+            {/* Map through characters to create buttons for each character */}
+            {characters.map((_, index) => (
+              <Button
+                key={index}
+                variant={activeTab === index ? "primary" : "outline-secondary"}
+                className="m-1 w-100"
+                onClick={() => setActiveTab(index)}
+              >
+                Character {index + 1}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <div class="p-3 flex-grow-1 bd-highlight">
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label className="text-warning fw-semibold">Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                value={characters[activeTab]?.name || ""}
+                onChange={(e) => handleChange(e, activeTab)}
+                placeholder="Your character's name"
+                className="bg-dark-subtle border-0"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="text-warning fw-semibold">Race</Form.Label>
+              <Form.Control
+                type="text"
+                name="race"
+                value={characters[activeTab]?.race || ""}
+                onChange={(e) => handleChange(e, activeTab)}
+                placeholder="Elf, Orc, Human..."
+                className="bg-dark-subtle border-0"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="text-warning fw-semibold">Class</Form.Label>
+              <Form.Control
+                type="text"
+                name="class"
+                value={characters[activeTab]?.class || ""}
+                onChange={(e) => handleChange(e, activeTab)}
+                placeholder="Wizard, Rogue, Warrior..."
+                className="bg-dark-subtle border-0"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label className="text-warning fw-semibold">Background</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                name="background"
+                value={characters[activeTab]?.background || ""}
+                onChange={(e) => handleChange(e, activeTab)}
+                placeholder="Brief background or traits"
+                className="bg-dark-subtle border-0"
+              />
+            </Form.Group>
+
+            <Row>
+              {Object.entries(characters[activeTab]?.stats || {}).map(([key, value]) => (
+                <Col xs={6} md={4} key={key} className="mb-3">
+                  <Form.Label className="text-capitalize text-warning fw-semibold">
+                    {key} (1-10)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name={key}
+                    min="1"
+                    max="10"
+                    value={value}
+                    onChange={(e) => handleChange(e, activeTab)}
+                    className="bg-dark-subtle border-0"
+                  />
+                </Col>
+              ))}
+            </Row>
+          </Form>
+        </div>
+      </div>
+      {/* <div style={{ display: "none" }} className="d-flex flex-column justify-content-center">
+        <Tabs
+          id="character-tabs"
+          activeKey={activeTab}
+          onSelect={(k) => {
+            if (k === "add") {
+              handleAddTab();
+            } else if (k === "remove") {
+              handleRemoveTab();
+            } else {
+              setActiveTab(k);
+            }
+          }}
+          className="mb-0"
+        >
+          {characters.map((char, index) => (
+            activeTab === index && (
               <Tab
                 eventKey={index}
                 title={`Character ${index + 1}`}
                 key={index}
-              />
-            ))}
-          </Tabs>
-        </div>
-  
-        {/* Plus and Minus Buttons next to Tabs */}
-        <div className="d-flex ms-2">
-          <Button
-            variant="outline-warning"
-            className="me-2"
-            size="sm"
-            onClick={handleAddTab}
-          >
-            <Plus />
-          </Button>
-  
-          <Button
-            variant="outline-danger"
-            size="sm"
-            onClick={handleRemoveTab}
-            disabled={characters.length <= 1}
-          >
-            <Dash />
-          </Button>
-        </div>
-      </div>
-  
-      {/* Tab Content Below */}
-      {characters.map((char, index) => (
-        activeTab === index && (
-          <Container key={index} className="d-flex justify-content-center align-items-center">
-            <Card>
-              <Card.Body>
-                <Form>
-                  <Form.Group className="mb-3">
-                    <Form.Label className="text-warning fw-semibold">Name</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="name"
-                      value={char.name}
-                      onChange={(e) => handleChange(e, index)}
-                      placeholder="Your character's name"
-                      className="bg-dark-subtle border-0"
-                    />
-                  </Form.Group>
-  
-                  <Form.Group className="mb-3">
-                    <Form.Label className="text-warning fw-semibold">Race</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="race"
-                      value={char.race}
-                      onChange={(e) => handleChange(e, index)}
-                      placeholder="Elf, Orc, Human..."
-                      className="bg-dark-subtle border-0"
-                    />
-                  </Form.Group>
-  
-                  <Form.Group className="mb-3">
-                    <Form.Label className="text-warning fw-semibold">Class</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="class"
-                      value={char.class}
-                      onChange={(e) => handleChange(e, index)}
-                      placeholder="Wizard, Rogue, Warrior..."
-                      className="bg-dark-subtle border-0"
-                    />
-                  </Form.Group>
-  
-                  <Form.Group className="mb-4">
-                    <Form.Label className="text-warning fw-semibold">Background</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={2}
-                      name="background"
-                      value={char.background}
-                      onChange={(e) => handleChange(e, index)}
-                      placeholder="Brief background or traits"
-                      className="bg-dark-subtle border-0"
-                    />
-                  </Form.Group>
-  
-                  <Row>
-                    {Object.entries(char.stats).map(([key, value]) => (
-                      <Col xs={6} md={4} key={key} className="mb-3">
-                        <Form.Label className="text-capitalize text-warning fw-semibold">
-                          {key} (1-10)
-                        </Form.Label>
+              >
+                <Card>
+                  <Card.Body>
+                    <Form>
+                      <Form.Group className="mb-3">
+                        <Form.Label className="text-warning fw-semibold">Name</Form.Label>
                         <Form.Control
-                          type="number"
-                          name={key}
-                          min="1"
-                          max="10"
-                          value={value}
+                          type="text"
+                          name="name"
+                          value={char.name}
                           onChange={(e) => handleChange(e, index)}
+                          placeholder="Your character's name"
                           className="bg-dark-subtle border-0"
                         />
-                      </Col>
-                    ))}
-                  </Row>
-                </Form>
-              </Card.Body>
-            </Card>
-          </Container>
-        )
-      ))}
-  
+                      </Form.Group>
+
+                      <Form.Group className="mb-3">
+                        <Form.Label className="text-warning fw-semibold">Race</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="race"
+                          value={char.race}
+                          onChange={(e) => handleChange(e, index)}
+                          placeholder="Elf, Orc, Human..."
+                          className="bg-dark-subtle border-0"
+                        />
+                      </Form.Group>
+
+                      <Form.Group className="mb-3">
+                        <Form.Label className="text-warning fw-semibold">Class</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="class"
+                          value={char.class}
+                          onChange={(e) => handleChange(e, index)}
+                          placeholder="Wizard, Rogue, Warrior..."
+                          className="bg-dark-subtle border-0"
+                        />
+                      </Form.Group>
+
+                      <Form.Group className="mb-4">
+                        <Form.Label className="text-warning fw-semibold">Background</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={2}
+                          name="background"
+                          value={char.background}
+                          onChange={(e) => handleChange(e, index)}
+                          placeholder="Brief background or traits"
+                          className="bg-dark-subtle border-0"
+                        />
+                      </Form.Group>
+
+                      <Row>
+                        {Object.entries(char.stats).map(([key, value]) => (
+                          <Col xs={6} md={4} key={key} className="mb-3">
+                            <Form.Label className="text-capitalize text-warning fw-semibold">
+                              {key} (1-10)
+                            </Form.Label>
+                            <Form.Control
+                              type="number"
+                              name={key}
+                              min="1"
+                              max="10"
+                              value={value}
+                              onChange={(e) => handleChange(e, index)}
+                              className="bg-dark-subtle border-0"
+                            />
+                          </Col>
+                        ))}
+                      </Row>
+                    </Form>
+                  </Card.Body>
+                </Card>
+              </Tab>
+
+            )
+          ))}
+          <Tab eventKey="add" title="➕" />
+        </Tabs>
+
+      </div> */}
+      {/* Tab Content Below */}
+
+
       {/* Global Continue Button */}
       <div className="d-flex justify-content-end mt-4">
         <Button
@@ -243,7 +321,7 @@ const CharacterPage = () => {
         </Button>
       </div>
     </Container>
-  );   
+  );
 };
 
 export default CharacterPage;
