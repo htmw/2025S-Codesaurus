@@ -119,7 +119,7 @@ const CharacterPage = () => {
     <Container className="theme-page" fluid>
       <h1 className="theme-header mb-4">Character Creation</h1>
       <div className="d-flex justify-content-center bg-quest-secondary bd-highlight">
-        <div class="p-2 flex-column bg-quest bd-highlight">
+        <div class="p-2 bg-quest bd-highlight">
           <div className="button-container d-flex flex-column align-items-center">
             <Button
               variant="warning"
@@ -145,8 +145,8 @@ const CharacterPage = () => {
             ))}
           </div>
         </div>
-        {characters[activeTab] && <div class="p-3 flex-grow-1 bd-highlight">
-          <Form>
+        {<div class="p-3 flex-grow-1 bd-highlight">
+          {characters[activeTab] && <Form>
             <Form.Group className="mb-3">
               <Form.Label className="text-warning fw-semibold">Name</Form.Label>
               <Form.Control
@@ -224,7 +224,7 @@ const CharacterPage = () => {
                 Delete
               </Button>
             </div>
-          </Form>
+          </Form>}
         </div>}
       </div>
       {/* <div style={{ display: "none" }} className="d-flex flex-column justify-content-center">
