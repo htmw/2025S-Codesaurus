@@ -17,7 +17,6 @@ function GameSessionPage() {
 
     const [sessionId, setSessionId] = useState(localStorage.getItem("sessionId"));
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [messages, setMessages] = useState([]);
     const [playerInput, setPlayerInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -138,8 +137,7 @@ function GameSessionPage() {
 
             if (response.ok) {
                 // Fetch logs separately
-                const logsRes = await fetch(`${API_BASE_URL}/logs/${sessionId}`);
-                const logsData = await logsRes.json();
+                const logsData = data.logs || [];
 
                 const formattedMessages = logsData.map((log) => [
                     { sender: "narrator", text: log.context },
