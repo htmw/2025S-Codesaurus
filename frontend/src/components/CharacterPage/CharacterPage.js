@@ -76,6 +76,25 @@ const CharacterPage = () => {
         return;
       }
 
+      // Validate characters before sending
+      for (const char of characters) {
+        if (
+          !char.name.trim() ||
+          !char.race.trim() ||
+          !char.class.trim() ||
+          !char.background.trim() ||
+          !char.stats.strength ||
+          !char.stats.dexterity ||
+          !char.stats.constitution ||
+          !char.stats.intelligence ||
+          !char.stats.wisdom ||
+          !char.stats.charisma
+        ) {
+          alert("Please fill out all fields for every character before starting the game."); // TODO: toast message
+          return;
+        }
+      }
+
       const gameRes = await fetch(`${API_BASE_URL}/start-game`, {
         method: "POST",
         headers: {
