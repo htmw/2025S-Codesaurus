@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Container, Form, Row, Col, Button, Card, Tabs, Tab } from "react-bootstrap";
+import { Container, Form, Row, Col, Button } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, Dash } from 'react-bootstrap-icons';
 
@@ -45,6 +45,9 @@ const CharacterPage = () => {
   };
 
   const handleAddTab = () => {
+    if (characters.length >= location.state.maxPlayers) {
+      return;
+    }
     setCharacters(prev => [
       ...prev,
       {
@@ -97,42 +100,52 @@ const CharacterPage = () => {
     }
   };
 
-  const handleRemoveTab = () => {
-    if (characters.length > 1) {
-      setCharacters(prev => prev.slice(0, -1)); // Remove last character
-      setActiveTab(prev => Math.max(0, prev - 1)); // Move activeTab back if needed
+  const handleRemoveTab = (index) => {
+    if (characters.length <= 1) return; // Prevent removing the last tab
+
+    setCharacters(prev => {
+      const updatedCharacters = [...prev];
+      updatedCharacters.splice(index, 1); // Remove the character at the specified index
+      return updatedCharacters;
+    });
+
+    if (activeTab >= characters.length) {
+      setActiveTab(characters.length - 1); // Set active tab to the last one if current is removed
     }
-  };
+  }
 
 
   return (
     <Container className="theme-page" fluid>
       <h1 className="theme-header mb-4">Character Creation</h1>
-      {/* <pre>
-        {JSON.stringify(characters, null, 2)}
-      </pre> */}
       <div className="d-flex justify-content-center bg-quest-secondary bd-highlight">
         <div class="p-2 flex-column bg-quest bd-highlight">
           <div className="button-container d-flex flex-column align-items-center">
-            <Button variant="warning" className="m-1 w-100" onClick={handleAddTab}>
+            <Button
+              variant="warning"
+              className="m-1 w-100"
+              onClick={handleAddTab}
+              disabled={characters.length >= (location?.state?.maxPlayers ? parseInt(location?.state?.maxPlayers) : 4)}
+            >
               <Plus size={20} />
             </Button>
           </div>
           <div className="d-flex flex-column align-items-center">
             {/* Map through characters to create buttons for each character */}
             {characters.map((_, index) => (
+
               <Button
-                key={index}
-                variant={activeTab === index ? "primary" : "outline-secondary"}
-                className="m-1 w-100"
+                variant={activeTab === index ? "primary" : "secondary"}
+                className="w-100 m-1"
                 onClick={() => setActiveTab(index)}
               >
-                Character {index + 1}
+                {`Character ${index + 1}`}
               </Button>
+
             ))}
           </div>
         </div>
-        <div class="p-3 flex-grow-1 bd-highlight">
+        {characters[activeTab] && <div class="p-3 flex-grow-1 bd-highlight">
           <Form>
             <Form.Group className="mb-3">
               <Form.Label className="text-warning fw-semibold">Name</Form.Label>
@@ -201,8 +214,18 @@ const CharacterPage = () => {
                 </Col>
               ))}
             </Row>
+            <div className="d-flex justify-content-end">
+              <Button
+                variant="outline-danger"
+                className="m-1"
+                onClick={() => handleRemoveTab(activeTab)}
+                disabled={characters.length <= 1}
+              >
+                Delete
+              </Button>
+            </div>
           </Form>
-        </div>
+        </div>}
       </div>
       {/* <div style={{ display: "none" }} className="d-flex flex-column justify-content-center">
         <Tabs

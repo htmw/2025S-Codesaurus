@@ -33,7 +33,7 @@ const StoryPage = () => {
 
     const handleContinue = () => {
         if (selectedStory) {
-            navigate("/character", { state: { story: selectedStory._id } });
+            navigate("/character", { state: { story: selectedStory._id, storyData: selectedStory } });
         }
     };
 
