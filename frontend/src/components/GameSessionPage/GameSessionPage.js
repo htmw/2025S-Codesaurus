@@ -179,9 +179,11 @@ function GameSessionPage() {
                 ]).flat().filter(msg => msg.text);
 
                 setMessages(formattedMessages);
-                setRequiresRoll(data.requiresRoll); //update dice state
                 setIsCompleted(data.isCompleted); //Set game completion state
                 setIsDisabled(data.isCompleted); //Disable input if game is completed
+
+                // Ensure requiresRoll is false if game is completed
+                setRequiresRoll(data.isCompleted ? false : data.requiresRoll);
 
                 if (data.isCompleted) {
                     const lastMessage = formattedMessages[formattedMessages.length - 1]?.text || "";
@@ -217,9 +219,11 @@ function GameSessionPage() {
             if (response.ok) {
                 const aiMessage = { sender: "narrator", text: data.storyState };
                 setMessages((prev) => [...prev, aiMessage]);
-                setRequiresRoll(data.requiresRoll || false);
                 setIsCompleted(data.isCompleted);
                 setIsDisabled(data.isCompleted);
+
+                // Ensure requiresRoll is false if game is completed
+                setRequiresRoll(data.isCompleted ? false : data.requiresRoll);
 
                 if (data.isCompleted) {
                     console.log(data.requirementsMet);
@@ -272,8 +276,10 @@ function GameSessionPage() {
                     { sender: "player", text: data.diceUserMessage },
                     { sender: "narrator", text: data.storyState }
                 ]);
+
+                // Ensure requiresRoll is false if game is completed
                 setTimeout(() => {
-                    setRequiresRoll(data.requiresRoll);
+                    setRequiresRoll(data.isCompleted ? false : data.requiresRoll);
                 }, 4000);
 
                 if (data.isCompleted) {
