@@ -21,6 +21,7 @@ function GameSessionPage() {
     const [playerInput, setPlayerInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [gameResult, setGameResult] = useState(null); // 'win' or 'loss'
+    const [charactersData, setCharactersData] = useState([]);
     const messagesEndRef = useRef(null);
 
     const [requiresRoll, setRequiresRoll] = useState(false);
@@ -31,6 +32,7 @@ function GameSessionPage() {
 
     useEffect(() => {
         fetchMessageHistory(sessionId);
+        fetchCharactersData();
     }, [storyId]);
 
     useEffect(() => {
@@ -49,6 +51,24 @@ function GameSessionPage() {
             localStorage.setItem('failureCount', '0');
         }
     }, []);
+
+    // Fetch characters data from the server
+    const fetchCharactersData = async () => {
+        // Fetch characters from game session id
+        const sessionId = localStorage.getItem("sessionId");
+        if (!sessionId) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/characters?gameSessionId=${sessionId}`);
+            const data = await response.json();
+            if (response.ok) {
+                setCharactersData(data);
+            } else {
+                console.error("Failed to fetch characters:", data.message);
+            }
+        } catch (error) {
+            console.error("Error fetching characters:", error);
+        }
+    };
 
     // Function to update success/failure counts
     const updateRollCounts = (message) => {
