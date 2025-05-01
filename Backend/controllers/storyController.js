@@ -4,7 +4,7 @@ const NPC = require('../models/NPC');
 
 // POST route to create a new story
 const saveStory = async (req, res) => {
-    const { title, description, themeId, prompt, narrator_tone, duration, npcIds } = req.body;
+    const { title, description, themeId, prompt, narrator_tone, duration, npcIds, maxPlayers } = req.body;
     // Ensure the title is provided
     if (!title) {
         return res.status(400).json({ message: "title is required" });
@@ -14,6 +14,9 @@ const saveStory = async (req, res) => {
     }
     if (!prompt) {
         return res.status(400).json({ message: "prompt is required" });
+    }
+    if (!maxPlayers || typeof maxPlayers !== "number" || maxPlayers < 1) {
+        return res.status(400).json({ message: "Minimum 1 player requried" });
     }
 
     try {
@@ -43,7 +46,8 @@ const saveStory = async (req, res) => {
             prompt,
             narrator_tone,
             duration,
-            npcIds: validNpcIds
+            npcIds: validNpcIds,
+            maxPlayers
         });
 
         await newStory.save();  // Save the Story to the database
@@ -65,7 +69,7 @@ const updateStory = async (req, res) => {
             { $set: updates }, // Only update provided fields
             { new: true, runValidators: true } // Return updated story
         ).populate("themeId", "title")
-        .populate("npcIds");
+            .populate("npcIds");
 
         if (!updatedStory) {
             return res.status(404).json({ message: "Story not found" });
@@ -82,9 +86,9 @@ const updateStory = async (req, res) => {
 const getAllStories = async (req, res) => {
     try {
         const stories = await Story.find().sort({ timestamp: -1 }) // Retrieve all stories sorted by most recent timestamp
-        .populate("themeId", "title")  // Populate themeId with the themeId name and title; 
-        .populate("npcIds");
-        
+            .populate("themeId", "title")  // Populate themeId with the themeId name and title; 
+            .populate("npcIds");
+
         if (stories.length === 0) {
             return res.status(404).json({ message: "No stories found" });
         }
@@ -102,8 +106,8 @@ const getStoryById = async (req, res) => {
     try {
         // Find the story by its ID
         const story = await Story.findById(id)
-        .populate("themeId", "title")
-        .populate("npcIds");
+            .populate("themeId", "title")
+            .populate("npcIds");
 
         if (!story) {
             return res.status(404).json({ message: "Story not found" });
