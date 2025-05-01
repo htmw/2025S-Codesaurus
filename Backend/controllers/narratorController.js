@@ -63,7 +63,8 @@ Respond ONLY in this exact JSON format:
   "requiresRoll": true | false,
   "threshold": number | null,
   "narration": "string ending with a question unless 'End of Game' is true",
-  "End of Game": true | false
+  "End of Game": true | false,
+  "npcInScene": [ "npcId1", "npcId2" ]
 }
 
 Rules:
@@ -83,6 +84,11 @@ Rules:
 - narration should mention the character's class or background if relevant, but never contradict their stats.
 - Do not offer predefined choices.
 - Do NOT explain anything outside the JSON format. No extra commentary.
+- After generating narration, determine which NPCs are actively present in the scene.
+- Add their MongoDB IDs to a new array field: "npcInScene".
+- Use only NPCs provided in the NPC list.
+- Do not invent NPCs or IDs.
+- Do not include NPCs that are not in the list.
 
 Ending Rules:
 - If player actions (even slightly) match these requirements: ${JSON.stringify(requirements)}
@@ -254,8 +260,8 @@ const processNarration = async ({ session, playerChoices = null, diceRollResult 
 	//inclue npc ids in the npcList****
 	//In prompt refer toggle should refer to NPC id in the json format array
 	const npcList = story.npcIds.map(npc =>
-		`${npc.title} (${npc.role}) - ${npc.description}`
-	).join(", ");
+		`${npc.title} [${npc._id}] (${npc.role}) - ${npc.description}`
+	  ).join(", ");	  
 
 	// TODO: escape logic seems to be broken, fix it later
 	const containsEscape = playerChoices
@@ -288,21 +294,27 @@ const processNarration = async ({ session, playerChoices = null, diceRollResult 
 
 	await Log.create({
 		sessionId: session._id,
-		context: narrationResponse.requiresRoll ? `[Dice roll required]: ${narrationResponse.narration}` : narrationResponse.narration,
+		context: narrationResponse.requiresRoll
+		  ? `[Dice roll required]: ${narrationResponse.narration}`
+		  : narrationResponse.narration,
 		userInput: null,
-		diceRollResult: narrationResponse.requiresRoll ? {
-			diceRoll: null, // Player will roll later
-			threshold: narrationResponse.threshold,
-			success: null
-		} : undefined
-	});
+		diceRollResult: narrationResponse.requiresRoll
+		  ? {
+			  diceRoll: null,
+			  threshold: narrationResponse.threshold,
+			  success: null
+			}
+		  : undefined,
+		npcInScene: narrationResponse.npcInScene || [] 
+	  });
 
 	return {
 		storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
 		requiresRoll: narrationResponse.requiresRoll,
 		threshold: narrationResponse.threshold,
 		isCompleted: session.isCompleted,
-		requirementsMet: session.requirementsMet
+		requirementsMet: session.requirementsMet,
+		npcInScene: narrationResponse.npcInScene || []
 	};
 };
 

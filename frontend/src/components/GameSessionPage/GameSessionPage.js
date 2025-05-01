@@ -181,6 +181,7 @@ function GameSessionPage() {
             });
 
             const data = await response.json();
+            console.log('data: ', JSON.stringify(data));
 
             if (response.ok) {
                 const aiMessage = { sender: "narrator", text: data.storyState };
