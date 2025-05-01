@@ -251,7 +251,6 @@ function GameSessionPage() {
         }
     };
 
-
     const handleRoll = async () => {
         if (rolling) return;
         if (!sessionId) return;
@@ -268,7 +267,6 @@ function GameSessionPage() {
 
             if (response.ok) {
                 setDiceValue(data.diceRoll); // Update dice face
-                console.log(data.success);
 
                 // Update success/failure counts based on the dice roll result
                 if (data.success) {
@@ -281,7 +279,7 @@ function GameSessionPage() {
 
                 setMessages(prev => [
                     ...prev,
-                    { sender: "player", text: data.diceUserMessage },
+                    { sender: "player", text: data.message },
                     { sender: "narrator", text: data.storyState }
                 ]);
                 setTimeout(() => {
@@ -331,7 +329,7 @@ function GameSessionPage() {
                                 {isNarrator && isLastMessage ? (
                                     <Typewriter text={msg.text || ""} speed={15} delay={0} />
                                 ) : (
-                                    isNarrator ? msg.text : <em>"{msg.text}"</em>
+                                    <em>{msg.text}</em>
                                 )}
                             </motion.div>
                         );
@@ -348,53 +346,68 @@ function GameSessionPage() {
                 </div>
 
                 {/* Chat Input */}
-                <div className="mb-2 d-flex gap-2">
-                    {charactersData.map((char, index) => (
-                        <Button
-                            key={char._id}
-                            variant={index === activeUser ? "primary" : "outline-secondary"}
-                            onClick={() => setActiveUser(index)}
-                        >
-                            {char.name || `User ${index + 1}`}
-                        </Button>
-                    ))}
-                </div>
-                <InputGroup className="chat-input">
-                    <Form.Control
-                        type="text"
-                        placeholder={
-                            isCompleted ? "Game Over" : requiresRoll ? "Roll the dice..." : "Make your move..."
-                        }
-                        value={playerInputs[activeUser]}
-                        onChange={(e) => {
-                            const newInputs = [...playerInputs];
-                            newInputs[activeUser] = e.target.value;
-                            setPlayerInputs(newInputs);
-                        }}
-                        disabled={loading || isTyping || requiresRoll || isCompleted}
-                        className="chat-input-field"
-                    />
 
-                    <AnimatePresence mode="wait">
-                        {!isCompleted && (
-                            <motion.div
-                                key="send"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <Button
-                                    className="send-button"
-                                    onClick={handleSendMessage}
-                                    disabled={!playerInputs?.[activeUser]?.trim()}
-                                >
-                                    <FaPaperPlane size={18} />
-                                </Button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </InputGroup>
+                {
+                    requiresRoll && !isCompleted ? (
+                        <div className="dice-container">
+                            <DiceRoller
+                                rolling={rolling}
+                                onRoll={handleRoll}
+                                value={diceValue}
+                            />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="mb-2 d-flex gap-2">
+                                {charactersData.map((char, index) => (
+                                    <Button
+                                        key={char._id}
+                                        variant={index === activeUser ? "primary" : "outline-secondary"}
+                                        onClick={() => setActiveUser(index)}
+                                    >
+                                        {char.name || `User ${index + 1}`}
+                                    </Button>
+                                ))}
+                            </div>
+                            <InputGroup className="chat-input">
+                                <Form.Control
+                                    type="text"
+                                    placeholder={
+                                        isCompleted ? "Game Over" : requiresRoll ? "Roll the dice..." : "Make your move..."
+                                    }
+                                    value={playerInputs[activeUser]}
+                                    onChange={(e) => {
+                                        const newInputs = [...playerInputs];
+                                        newInputs[activeUser] = e.target.value;
+                                        setPlayerInputs(newInputs);
+                                    }}
+                                    disabled={loading || isTyping || requiresRoll || isCompleted}
+                                    className="chat-input-field"
+                                />
+
+                                <AnimatePresence mode="wait">
+                                    {!isCompleted && (
+                                        <motion.div
+                                            key="send"
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.5 }}
+                                        >
+                                            <Button
+                                                className="send-button"
+                                                onClick={handleSendMessage}
+                                                disabled={!playerInputs?.[activeUser]?.trim()}
+                                            >
+                                                <FaPaperPlane size={18} />
+                                            </Button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </InputGroup>
+                        </>
+                    )
+                }
             </Container>
         </Container>
     );

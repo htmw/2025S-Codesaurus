@@ -444,6 +444,8 @@ const getGameState = async (req, res) => {
 		res.json({
 			storyState: session.storyState,
 			isCompleted: session.isCompleted,
+			requiresRoll: session.requiresRoll,
+			rollThreshold: session.rollThreshold,
 			logs: formattedLogs,
 			characters: characters.map(character => ({
 				characterId: character._id.toString(),
