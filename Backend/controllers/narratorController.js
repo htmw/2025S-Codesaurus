@@ -419,6 +419,8 @@ const getGameState = async (req, res) => {
 
 	try {
 		const session = await GameSession.findById(sessionId);
+		const characters = await Character.find({ gameSessionId: sessionId });
+
 		if (!session) return res.status(404).json({ message: "Game session not found." });
 
 		const logs = await Log.find({ sessionId })
@@ -442,7 +444,14 @@ const getGameState = async (req, res) => {
 		res.json({
 			storyState: session.storyState,
 			isCompleted: session.isCompleted,
-			logs: formattedLogs
+			logs: formattedLogs,
+			characters: characters.map(character => ({
+				characterId: character._id.toString(),
+				name: character.name,
+				class: character.class,
+				race: character.race,
+				stats: character.stats,
+			})),
 		});
 	} catch (err) {
 		console.error("getGameState error:", err);
