@@ -164,8 +164,8 @@ const startGame = async (req, res) => {
 		if (!story) return res.status(404).json({ message: "Story not found." });
 
 		if (characters.length > story.maxPlayers) {
-			return res.status(400).json({ 
-				message: `Maximum ${story.maxPlayers} players allowed for this story.` 
+			return res.status(400).json({
+				message: `Maximum ${story.maxPlayers} players allowed for this story.`
 			});
 		}
 
@@ -400,6 +400,17 @@ const rollDice = async (req, res) => {
 	}
 };
 
+const formatLogMessage = (log) => {
+	if (log.userInput) {
+		return log.userInput.moves
+			.map(move => `${move.characterId.name}: "${move.input}"`)
+			.join(" \n ");
+	} else if (log?.diceRollResult?.diceRoll) {
+		return diceRollMessage(log.diceRollResult.diceRoll, log.diceRollResult.threshold);
+	}
+
+};
+
 const completeGame = async (req, res) => {
 	const { sessionId } = req.body;
 	if (!sessionId) return res.status(400).json({ message: "Missing session ID." });
@@ -424,22 +435,48 @@ const getGameState = async (req, res) => {
 
 	try {
 		const session = await GameSession.findById(sessionId);
+		const characters = await Character.find({ gameSessionId: sessionId });
+
 		if (!session) return res.status(404).json({ message: "Game session not found." });
 
-		const logs = await Log.find({ sessionId }).sort({ timestamp: 1 });
-		const choices = logs.map(log => log.userInput);
+		const logs = await Log.find({ sessionId })
+			.sort({ timestamp: 1 })
+			.populate({
+				path: "userInput",
+				populate: {
+					path: "moves.characterId",
+				}
+			});
+		// console.log('logs: ', JSON.stringify(logs[0], null, 2));
+
+		// Format logs cleanly for frontend
+		const formattedLogs = logs
+			.map(log => ({
+				context: log.context,
+				userInput: formatLogMessage(log),
+			}))
+		// console.log('formattedLogs: ', JSON.stringify(formattedLogs, null, 2));
 
 		res.json({
 			storyState: session.storyState,
-			choices,
 			isCompleted: session.isCompleted,
-			requiresRoll: session.requiresRoll || false,
-			threshold: session.rollThreshold || null,
+			requiresRoll: session.requiresRoll,
+			rollThreshold: session.rollThreshold,
+			logs: formattedLogs,
+			characters: characters.map(character => ({
+				characterId: character._id.toString(),
+				name: character.name,
+				class: character.class,
+				race: character.race,
+				stats: character.stats,
+			})),
 		});
 	} catch (err) {
+		console.error("getGameState error:", err);
 		res.status(500).json({ message: "Server error", error: err.message });
 	}
 };
+
 
 const getChoicesForSession = async (req, res) => {
 	const { sessionId } = req.params;

@@ -17,11 +17,14 @@ function GameSessionPage() {
 
     const [sessionId, setSessionId] = useState(localStorage.getItem("sessionId"));
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [messages, setMessages] = useState([]);
     const [playerInput, setPlayerInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [gameResult, setGameResult] = useState(null); // 'win' or 'loss'
+    const [charactersData, setCharactersData] = useState([]);
+    const [activeUser, setActiveUser] = useState(0);
+    const [playerInputs, setPlayerInputs] = useState(Array(charactersData.length).fill(""));
+
     const messagesEndRef = useRef(null);
 
     const [requiresRoll, setRequiresRoll] = useState(false);
@@ -31,7 +34,13 @@ function GameSessionPage() {
     const [isDisabled, setIsDisabled] = useState(false);
 
     useEffect(() => {
-        fetchMessageHistory(sessionId);
+        if (!sessionId) {
+            // If sessionId is not in localStorage, redirect to home page
+            navigate("/");
+        } else {
+            fetchMessageHistory(sessionId);
+            fetchCharactersData();
+        }
     }, [storyId]);
 
     useEffect(() => {
@@ -50,6 +59,25 @@ function GameSessionPage() {
             localStorage.setItem('failureCount', '0');
         }
     }, []);
+
+    // Fetch characters data from the server
+    const fetchCharactersData = async () => {
+        // Fetch characters from game session id
+        const sessionId = localStorage.getItem("sessionId");
+        if (!sessionId) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/characters?gameSessionId=${sessionId}`);
+            const data = await response.json();
+            if (response.ok) {
+                setCharactersData(data);
+                setPlayerInputs(Array(data.length).fill(""));
+            } else {
+                console.error("Failed to fetch characters:", data.message);
+            }
+        } catch (error) {
+            console.error("Error fetching characters:", error);
+        }
+    };
 
     // Function to update success/failure counts
     const updateRollCounts = (message) => {
@@ -138,8 +166,7 @@ function GameSessionPage() {
 
             if (response.ok) {
                 // Fetch logs separately
-                const logsRes = await fetch(`${API_BASE_URL}/logs/${sessionId}`);
-                const logsData = await logsRes.json();
+                const logsData = data.logs || [];
 
                 const formattedMessages = logsData.map((log) => [
                     { sender: "narrator", text: log.context },
@@ -166,18 +193,38 @@ function GameSessionPage() {
     };
 
     const handleSendMessage = async () => {
-        if (!playerInput.trim() || !sessionId || isCompleted) return;
+        if (!sessionId || isCompleted) return;
 
-        const userMessage = { sender: "player", text: playerInput };
-        setMessages((prev) => [...prev, userMessage]);
-        setPlayerInput("");
+        // Filter valid non-empty inputs
+        const playerChoices = charactersData
+            .map((char, index) => {
+                const input = playerInputs[index]?.trim();
+                return input
+                    ? {
+                        characterId: char._id,
+                        choice: input,
+                    }
+                    : null;
+            })
+            .filter(Boolean); // remove nulls
+
+        if (playerChoices.length === 0) return;
+
+        // Add user messages to chat
+        const userMessages = playerChoices.map((pc) => ({
+            sender: "player",
+            text: `${charactersData.find((c) => c._id === pc.characterId)?.name || "Player"}: ${pc.choice}`,
+        }));
+
+        setMessages((prev) => [...prev, ...userMessages]);
+        setPlayerInputs(Array(charactersData.length).fill("")); // clear all inputs
         setIsTyping(true);
 
         try {
             const response = await fetch(`${API_BASE_URL}/play-turn`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sessionId, playerChoice: playerInput }),
+                body: JSON.stringify({ sessionId, playerChoices }),
             });
 
             const data = await response.json();
@@ -186,6 +233,7 @@ function GameSessionPage() {
             if (response.ok) {
                 const aiMessage = { sender: "narrator", text: data.storyState };
                 setMessages((prev) => [...prev, aiMessage]);
+
                 setRequiresRoll(data.requiresRoll || false);
                 setIsCompleted(data.isCompleted);
                 setIsDisabled(data.isCompleted);
@@ -196,7 +244,7 @@ function GameSessionPage() {
                     handleGameEnd(endResult, data.storyState);
                 }
             } else {
-                throw new Error("Failed to get AI response.");
+                throw new Error(data.message || "Failed to get AI response.");
             }
         } catch (error) {
             console.error("Error sending message:", error);
@@ -225,7 +273,6 @@ function GameSessionPage() {
 
             if (response.ok) {
                 setDiceValue(data.diceRoll); // Update dice face
-                console.log(data.success);
 
                 // Update success/failure counts based on the dice roll result
                 if (data.success) {
@@ -238,7 +285,7 @@ function GameSessionPage() {
 
                 setMessages(prev => [
                     ...prev,
-                    { sender: "player", text: data.diceUserMessage },
+                    { sender: "player", text: data.message },
                     { sender: "narrator", text: data.storyState }
                 ]);
                 setTimeout(() => {
@@ -288,7 +335,7 @@ function GameSessionPage() {
                                 {isNarrator && isLastMessage ? (
                                     <Typewriter text={msg.text || ""} speed={15} delay={0} />
                                 ) : (
-                                    isNarrator ? msg.text : <em>"{msg.text}"</em>
+                                    <em>{msg.text}</em>
                                 )}
                             </motion.div>
                         );
@@ -305,43 +352,68 @@ function GameSessionPage() {
                 </div>
 
                 {/* Chat Input */}
-                <InputGroup className="chat-input">
-                    <Form.Control
-                        type="text"
-                        placeholder={isCompleted ? "Game Over" : requiresRoll ? "Roll the dice..." : "Make your move..."}
-                        value={playerInput}
-                        onChange={(e) => setPlayerInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !requiresRoll && !isCompleted && handleSendMessage()}
-                        disabled={loading || isTyping || requiresRoll || isCompleted}
-                        className="chat-input-field"
-                    />
 
-                    <AnimatePresence mode="wait">
-                        {requiresRoll && !isCompleted ? (
-                            <motion.div
-                                key="dice"
-                                initial={{ opacity: 1, scale: 1 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.5 } }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DiceRoller value={diceValue} rolling={rolling} onRoll={handleRoll} size={30} />
-                            </motion.div>
-                        ) : !isCompleted ? (
-                            <motion.div
-                                key="send"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <Button className="send-button" onClick={handleSendMessage} disabled={!playerInput.trim()}>
-                                    <FaPaperPlane size={18} />
-                                </Button>
-                            </motion.div>
-                        ) : null}
-                    </AnimatePresence>
-                </InputGroup>
+                {
+                    requiresRoll && !isCompleted ? (
+                        <div className="dice-container">
+                            <DiceRoller
+                                rolling={rolling}
+                                onRoll={handleRoll}
+                                value={diceValue}
+                            />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="mb-2 d-flex gap-2">
+                                {charactersData.map((char, index) => (
+                                    <Button
+                                        key={char._id}
+                                        variant={index === activeUser ? "primary" : "outline-secondary"}
+                                        onClick={() => setActiveUser(index)}
+                                    >
+                                        {char.name || `User ${index + 1}`}
+                                    </Button>
+                                ))}
+                            </div>
+                            <InputGroup className="chat-input">
+                                <Form.Control
+                                    type="text"
+                                    placeholder={
+                                        isCompleted ? "Game Over" : requiresRoll ? "Roll the dice..." : "Make your move..."
+                                    }
+                                    value={playerInputs[activeUser]}
+                                    onChange={(e) => {
+                                        const newInputs = [...playerInputs];
+                                        newInputs[activeUser] = e.target.value;
+                                        setPlayerInputs(newInputs);
+                                    }}
+                                    disabled={loading || isTyping || requiresRoll || isCompleted}
+                                    className="chat-input-field"
+                                />
+
+                                <AnimatePresence mode="wait">
+                                    {!isCompleted && (
+                                        <motion.div
+                                            key="send"
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.5 }}
+                                        >
+                                            <Button
+                                                className="send-button"
+                                                onClick={handleSendMessage}
+                                                disabled={!playerInputs?.[activeUser]?.trim()}
+                                            >
+                                                <FaPaperPlane size={18} />
+                                            </Button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </InputGroup>
+                        </>
+                    )
+                }
             </Container>
         </Container>
     );

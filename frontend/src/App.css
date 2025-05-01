@@ -60,3 +60,9 @@
 	border-radius: 100px !important;
 	transition: 0.3s !important;
 }
+
+.dice-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
