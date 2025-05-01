@@ -31,6 +31,42 @@ const StoryPage = () => {
         setSelectedStory(prev => prev?._id === story._id ? null : story);
     };
 
+    const handleNPCImageUpload = async (file, npcId) => {
+        const formData = new FormData();
+        formData.append("image", file);
+    
+        try {
+            const res = await fetch(`${API_BASE_URL}/admin/npc/${npcId}/image`, {
+                method: "PUT",
+                body: formData
+            });
+    
+            const data = await res.json();
+    
+            if (res.ok) {
+                // Update the story list to reflect the new image
+                const updatedStories = stories.map((story) => {
+                    if (story._id === selectedStory._id) {
+                        return {
+                            ...story,
+                            npcIds: story.npcIds.map((npc) =>
+                                npc._id === npcId ? data.npc : npc
+                            ),
+                        };
+                    }
+                    return story;
+                });
+    
+                setStories(updatedStories);
+            } else {
+                console.error(data.message);
+            }
+        } catch (err) {
+            console.error("Error uploading image:", err);
+        }
+    };
+    
+
     const handleContinue = () => {
         if (selectedStory) {
             navigate("/character", { state: { story: selectedStory._id, storyData: selectedStory } });
@@ -63,9 +99,33 @@ const StoryPage = () => {
                                         <div className="npc-panel-scroll">
                                             {(story.npcIds || []).map((npc, index) => (
                                                 <Card key={index} className="bg-dark text-light mb-2">
-                                                    <Card.Img variant="top" src={npc.alignment.toLowerCase() === "good"
+                                                    <Card.Img variant="top" src={npc.imageUrl || (npc.alignment.toLowerCase() === "good"
                                                         ? "/images/npc/default-hero.png"
-                                                        : "/images/npc/default-enemy.png"} />
+                                                        : "/images/npc/default-enemy.png")}
+                                                        style={{ position: "relative" }}
+                                                    />
+                                                    <label
+                                                        htmlFor={`npc-upload-${index}`}
+                                                        style={{
+                                                            position: "absolute",
+                                                            bottom: 10,
+                                                            right: 10,
+                                                            backgroundColor: "rgba(255,255,255,0.8)",
+                                                            padding: "4px 6px",
+                                                            borderRadius: "4px",
+                                                            cursor: "pointer",
+                                                            fontSize: "0.8rem"
+                                                        }}
+                                                    >
+                                                        🖼️ Upload
+                                                    </label>
+                                                    <input
+                                                        type="file"
+                                                        id={`npc-upload-${index}`}
+                                                        accept="image/*"
+                                                        style={{ display: "none" }}
+                                                        onChange={(e) => handleNPCImageUpload(e.target.files[0], npc._id)}
+                                                    />
                                                     <Card.Body>
                                                         <Card.Title>{npc.title}</Card.Title>
                                                         <Card.Text>
