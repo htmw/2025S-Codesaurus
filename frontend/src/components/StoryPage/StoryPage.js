@@ -34,15 +34,15 @@ const StoryPage = () => {
     const handleNPCImageUpload = async (file, npcId) => {
         const formData = new FormData();
         formData.append("image", file);
-    
+
         try {
-            const res = await fetch(`${API_BASE_URL}/admin/npc/${npcId}/image`, {
+            const res = await fetch(`${API_BASE_URL}/upload-npc-image/${npcId}`, {
                 method: "PUT",
                 body: formData
             });
-    
+
             const data = await res.json();
-    
+
             if (res.ok) {
                 // Update the story list to reflect the new image
                 const updatedStories = stories.map((story) => {
@@ -56,7 +56,7 @@ const StoryPage = () => {
                     }
                     return story;
                 });
-    
+
                 setStories(updatedStories);
             } else {
                 console.error(data.message);
@@ -65,7 +65,7 @@ const StoryPage = () => {
             console.error("Error uploading image:", err);
         }
     };
-    
+
 
     const handleContinue = () => {
         if (selectedStory) {
@@ -99,10 +99,15 @@ const StoryPage = () => {
                                         <div className="npc-panel-scroll">
                                             {(story.npcIds || []).map((npc, index) => (
                                                 <Card key={index} className="bg-dark text-light mb-2">
-                                                    <Card.Img variant="top" src={npc.imageUrl || (npc.alignment.toLowerCase() === "good"
-                                                        ? "/images/npc/default-hero.png"
-                                                        : "/images/npc/default-enemy.png")}
-                                                        style={{ position: "relative" }}
+                                                    <Card.Img
+                                                        variant="top"
+                                                        src={
+                                                            npc.imageUrl
+                                                                ? npc.imageUrl
+                                                                : npc.alignment.toLowerCase() === "good"
+                                                                    ? "/images/npc/default-hero.png"
+                                                                    : "/images/npc/default-enemy.png"
+                                                        }
                                                     />
                                                     <label
                                                         htmlFor={`npc-upload-${index}`}
