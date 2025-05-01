@@ -34,8 +34,13 @@ function GameSessionPage() {
     const [isDisabled, setIsDisabled] = useState(false);
 
     useEffect(() => {
-        fetchMessageHistory(sessionId);
-        fetchCharactersData();
+        if (!sessionId) {
+            // If sessionId is not in localStorage, redirect to home page
+            navigate("/");
+        } else {
+            fetchMessageHistory(sessionId);
+            fetchCharactersData();
+        }
     }, [storyId]);
 
     useEffect(() => {
