@@ -22,6 +22,9 @@ function GameSessionPage() {
     const [isTyping, setIsTyping] = useState(false);
     const [gameResult, setGameResult] = useState(null); // 'win' or 'loss'
     const [charactersData, setCharactersData] = useState([]);
+    const [activeUser, setActiveUser] = useState(0);
+    const [playerInputs, setPlayerInputs] = useState(Array(charactersData.length).fill(""));
+
     const messagesEndRef = useRef(null);
 
     const [requiresRoll, setRequiresRoll] = useState(false);
@@ -62,6 +65,7 @@ function GameSessionPage() {
             const data = await response.json();
             if (response.ok) {
                 setCharactersData(data);
+                setPlayerInputs(Array(data.length).fill(""));
             } else {
                 console.error("Failed to fetch characters:", data.message);
             }
@@ -184,18 +188,38 @@ function GameSessionPage() {
     };
 
     const handleSendMessage = async () => {
-        if (!playerInput.trim() || !sessionId || isCompleted) return;
+        if (!sessionId || isCompleted) return;
 
-        const userMessage = { sender: "player", text: playerInput };
-        setMessages((prev) => [...prev, userMessage]);
-        setPlayerInput("");
+        // Filter valid non-empty inputs
+        const playerChoices = charactersData
+            .map((char, index) => {
+                const input = playerInputs[index]?.trim();
+                return input
+                    ? {
+                        characterId: char._id,
+                        choice: input,
+                    }
+                    : null;
+            })
+            .filter(Boolean); // remove nulls
+
+        if (playerChoices.length === 0) return;
+
+        // Add user messages to chat
+        const userMessages = playerChoices.map((pc) => ({
+            sender: "player",
+            text: `${charactersData.find((c) => c._id === pc.characterId)?.name || "Player"}: ${pc.choice}`,
+        }));
+
+        setMessages((prev) => [...prev, ...userMessages]);
+        setPlayerInputs(Array(charactersData.length).fill("")); // clear all inputs
         setIsTyping(true);
 
         try {
             const response = await fetch(`${API_BASE_URL}/play-turn`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sessionId, playerChoice: playerInput }),
+                body: JSON.stringify({ sessionId, playerChoices }),
             });
 
             const data = await response.json();
@@ -203,6 +227,7 @@ function GameSessionPage() {
             if (response.ok) {
                 const aiMessage = { sender: "narrator", text: data.storyState };
                 setMessages((prev) => [...prev, aiMessage]);
+
                 setRequiresRoll(data.requiresRoll || false);
                 setIsCompleted(data.isCompleted);
                 setIsDisabled(data.isCompleted);
@@ -213,7 +238,7 @@ function GameSessionPage() {
                     handleGameEnd(endResult, data.storyState);
                 }
             } else {
-                throw new Error("Failed to get AI response.");
+                throw new Error(data.message || "Failed to get AI response.");
             }
         } catch (error) {
             console.error("Error sending message:", error);
@@ -225,6 +250,7 @@ function GameSessionPage() {
             setIsTyping(false);
         }
     };
+
 
     const handleRoll = async () => {
         if (rolling) return;
@@ -322,29 +348,35 @@ function GameSessionPage() {
                 </div>
 
                 {/* Chat Input */}
+                <div className="mb-2 d-flex gap-2">
+                    {charactersData.map((char, index) => (
+                        <Button
+                            key={char._id}
+                            variant={index === activeUser ? "primary" : "outline-secondary"}
+                            onClick={() => setActiveUser(index)}
+                        >
+                            {char.name || `User ${index + 1}`}
+                        </Button>
+                    ))}
+                </div>
                 <InputGroup className="chat-input">
                     <Form.Control
                         type="text"
-                        placeholder={isCompleted ? "Game Over" : requiresRoll ? "Roll the dice..." : "Make your move..."}
-                        value={playerInput}
-                        onChange={(e) => setPlayerInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !requiresRoll && !isCompleted && handleSendMessage()}
+                        placeholder={
+                            isCompleted ? "Game Over" : requiresRoll ? "Roll the dice..." : "Make your move..."
+                        }
+                        value={playerInputs[activeUser]}
+                        onChange={(e) => {
+                            const newInputs = [...playerInputs];
+                            newInputs[activeUser] = e.target.value;
+                            setPlayerInputs(newInputs);
+                        }}
                         disabled={loading || isTyping || requiresRoll || isCompleted}
                         className="chat-input-field"
                     />
 
                     <AnimatePresence mode="wait">
-                        {requiresRoll && !isCompleted ? (
-                            <motion.div
-                                key="dice"
-                                initial={{ opacity: 1, scale: 1 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.5 } }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DiceRoller value={diceValue} rolling={rolling} onRoll={handleRoll} size={30} />
-                            </motion.div>
-                        ) : !isCompleted ? (
+                        {!isCompleted && (
                             <motion.div
                                 key="send"
                                 initial={{ opacity: 0, scale: 0.8 }}
@@ -352,11 +384,15 @@ function GameSessionPage() {
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 0.5 }}
                             >
-                                <Button className="send-button" onClick={handleSendMessage} disabled={!playerInput.trim()}>
+                                <Button
+                                    className="send-button"
+                                    onClick={handleSendMessage}
+                                    disabled={!playerInputs?.[activeUser]?.trim()}
+                                >
                                     <FaPaperPlane size={18} />
                                 </Button>
                             </motion.div>
-                        ) : null}
+                        )}
                     </AnimatePresence>
                 </InputGroup>
             </Container>
