@@ -37,6 +37,14 @@
 	}
 }
 
+.bg-quest {
+	background-color: #0a2d35 !important;
+}
+
+.bg-quest-secondary {
+	background-color: #174955 !important;
+}
+
 .card {
 	background-color: #0a2d35 !important;
 }
