@@ -105,6 +105,8 @@ NPC Handling Rules:
 Game Setup:
 NPCs present in the story: ${npcList}
 
+NPCs inScene: 
+
 Playable characters in the game:
 ${JSON.stringify(charactersArray, null, 2)}
 
@@ -249,6 +251,8 @@ const playTurn = async (req, res) => {
 const processNarration = async ({ session, playerChoices = null, diceRollResult = null }) => {
 	const story = await Story.findById(session.storyId).populate("npcIds");
 
+	//inclue npc ids in the npcList****
+	//In prompt refer toggle should refer to NPC id in the json format array
 	const npcList = story.npcIds.map(npc =>
 		`${npc.title} (${npc.role}) - ${npc.description}`
 	).join(", ");

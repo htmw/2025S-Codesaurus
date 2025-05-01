@@ -28,7 +28,8 @@ const saveNPC = async (req, res) => {
             description,
             backstory,
             stats: npcStats,  // Use the stats from the request or default stats
-            alignment: alignment || "Neutral"  // Default to "Neutral" if no alignment provided
+            alignment: alignment || "Neutral",  // Default to "Neutral" if no alignment provided
+            imageUrl: req.file?.location || null, // Use the uploaded image URL if available
         });
 
 
