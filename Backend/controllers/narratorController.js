@@ -89,6 +89,7 @@ Rules:
 - Use only NPCs provided in the NPC list.
 - Do not invent NPCs or IDs.
 - Do not include NPCs that are not in the list.
+- Whenever NPC is in scene, make their presence clear in the narration.
 
 Ending Rules:
 - If player actions (even slightly) match these requirements: ${JSON.stringify(requirements)}
