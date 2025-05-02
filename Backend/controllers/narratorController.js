@@ -80,6 +80,20 @@ Rules:
     - Physical actions → strength, dexterity, constitution
     - Mental/magical actions → intelligence, wisdom
     - Social/influence actions → charisma
+- Ask: "Can this action logically fail in a way that matters?" If not, it must NOT trigger a dice roll.
+
+- Before setting "requiresRoll": true, verify:
+  - Is there a meaningful consequence to failure?
+  - Is the action contested, difficult, or dangerous?
+If not, set "requiresRoll": false.
+
+- If "requiresRoll" is true, the narration MUST clearly indicate what the challenge is and why success is uncertain.
+- This can include:
+    - the danger involved,
+    - the difficulty of the task,
+    - the urgency or tension of the moment.
+- Example: "You begin to climb the slippery rock wall, each step more treacherous than the last..." or "The guard narrows his eyes, clearly suspicious of your tone..."
+- This explanation should be part of the narration (not a separate field).
 - narration must be concise (2-3 sentences) and end with an open-ended question (unless ending the game).
 - narration should mention the character's class or background if relevant, but never contradict their stats.
 - Do not offer predefined choices.
