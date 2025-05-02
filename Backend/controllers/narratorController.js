@@ -262,7 +262,7 @@ const processNarration = async ({ session, playerChoices = null, diceRollResult 
 	//In prompt refer toggle should refer to NPC id in the json format array
 	const npcList = story.npcIds.map(npc =>
 		`${npc.title} [${npc._id}] (${npc.role}) - ${npc.description}`
-	  ).join(", ");	  
+	).join(", ");
 
 	// TODO: escape logic seems to be broken, fix it later
 	const containsEscape = playerChoices
@@ -296,18 +296,18 @@ const processNarration = async ({ session, playerChoices = null, diceRollResult 
 	await Log.create({
 		sessionId: session._id,
 		context: narrationResponse.requiresRoll
-		  ? `[Dice roll required]: ${narrationResponse.narration}`
-		  : narrationResponse.narration,
+			? `[Dice roll required]: ${narrationResponse.narration}`
+			: narrationResponse.narration,
 		userInput: null,
 		diceRollResult: narrationResponse.requiresRoll
-		  ? {
-			  diceRoll: null,
-			  threshold: narrationResponse.threshold,
-			  success: null
+			? {
+				diceRoll: null,
+				threshold: narrationResponse.threshold,
+				success: null
 			}
-		  : undefined,
-		npcInScene: narrationResponse.npcInScene || [] 
-	  });
+			: undefined,
+		npcInScene: narrationResponse.npcInScene || []
+	});
 
 	return {
 		storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
@@ -448,13 +448,14 @@ const getGameState = async (req, res) => {
 					path: "moves.characterId",
 				}
 			});
-		// console.log('logs: ', JSON.stringify(logs[0], null, 2));
+		console.log('logs: ', JSON.stringify(logs, null, 2));
 
 		// Format logs cleanly for frontend
 		const formattedLogs = logs
 			.map(log => ({
 				context: log.context,
 				userInput: formatLogMessage(log),
+				npcInScene: log.npcInScene || [],
 			}))
 		// console.log('formattedLogs: ', JSON.stringify(formattedLogs, null, 2));
 

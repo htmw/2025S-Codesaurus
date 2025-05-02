@@ -171,9 +171,10 @@ function GameSessionPage() {
             if (response.ok) {
                 // Fetch logs separately
                 const logsData = data.logs || [];
+                console.log('logsData: ', logsData);
 
                 const formattedMessages = logsData.map((log) => [
-                    { sender: "narrator", text: log.context },
+                    { sender: "narrator", text: log.context, npcInScene: log.npcInScene },
                     { sender: "player", text: log.userInput }
                 ]).flat().filter(msg => msg.text);
 
