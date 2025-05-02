@@ -167,8 +167,6 @@ ${JSON.stringify(previousChoices, null, 2)}
 
 		let gameEnd = narrationObj["End of Game"];
 
-		console.log("Log Count: ", logCount);
-
 		if (gameEnd) {
 			const Endprompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
@@ -525,7 +523,6 @@ const getGameState = async (req, res) => {
 				userInput: formatLogMessage(log),
 				npcInScene: log.npcInScene || [],
 			}))
-		// console.log('formattedLogs: ', JSON.stringify(formattedLogs, null, 2));
 
 		res.json({
 			storyState: session.storyState,
