@@ -9,6 +9,7 @@ const logSchema = new mongoose.Schema({
         threshold: { type: Number },
         success: { type: Boolean }
     },
+    npcInScene: [{ type: mongoose.Schema.Types.ObjectId, ref: "NPC" }],
     timestamp: { type: Date, default: Date.now }
 });
 

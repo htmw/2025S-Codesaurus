@@ -24,6 +24,9 @@ function GameSessionPage() {
     const [charactersData, setCharactersData] = useState([]);
     const [activeUser, setActiveUser] = useState(0);
     const [playerInputs, setPlayerInputs] = useState(Array(charactersData.length).fill(""));
+    const [npcInScene, setNpcInScene] = useState([]);
+    const [allNPCs, setAllNPCs] = useState([]);
+
 
     const messagesEndRef = useRef(null);
 
@@ -40,6 +43,7 @@ function GameSessionPage() {
         } else {
             fetchMessageHistory(sessionId);
             fetchCharactersData();
+            fetchStoryNPCs();
         }
     }, [storyId]);
 
@@ -228,11 +232,16 @@ function GameSessionPage() {
             });
 
             const data = await response.json();
+            console.log('data: ', JSON.stringify(data));
 
             if (response.ok) {
-                const aiMessage = { sender: "narrator", text: data.storyState };
+                const aiMessage = {
+                    sender: "narrator",
+                    text: data.storyState,
+                    npcInScene: data.npcInScene || [],
+                };
                 setMessages((prev) => [...prev, aiMessage]);
-
+                setNpcInScene(data.npcInScene || []);
                 setRequiresRoll(data.requiresRoll || false);
                 setIsCompleted(data.isCompleted);
                 setIsDisabled(data.isCompleted);
@@ -287,6 +296,7 @@ function GameSessionPage() {
                     { sender: "player", text: data.message },
                     { sender: "narrator", text: data.storyState }
                 ]);
+                setNpcInScene(data.npcInScene || []);
                 setTimeout(() => {
                     setRequiresRoll(data.requiresRoll);
                 }, 4000);
@@ -307,6 +317,20 @@ function GameSessionPage() {
             setRolling(false);
         }
     };
+
+    const fetchStoryNPCs = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/stories/${storyId}`);
+            const data = await response.json();
+            if (response.ok && data.npcIds) {
+                setAllNPCs(data.npcIds); // assume backend returns full NPC objects populated
+            }
+        } catch (error) {
+            console.error("Failed to load NPCs for story:", error);
+        }
+    };
+
+
 
     return (
         <Container fluid className="game-container">
@@ -333,9 +357,28 @@ function GameSessionPage() {
                             >
                                 {isNarrator && isLastMessage ? (
                                     <Typewriter text={msg.text || ""} speed={15} delay={0} />
+
                                 ) : (
                                     <em>{msg.text}</em>
                                 )}
+                                {msg.sender === "narrator" && msg.npcInScene?.length > 0 && (
+                                    <div className="npc-scene-images mt-2 d-flex flex-wrap gap-3">
+                                        {allNPCs
+                                            .filter(npc => msg.npcInScene.includes(npc._id))
+                                            .map(npc => (
+                                                <div key={npc._id} className="text-center">
+                                                    <img
+                                                        src={npc.imageUrl}
+                                                        alt={npc.title}
+                                                        className="npc-image"
+                                                        style={{ width: "80px", borderRadius: "8px" }}
+                                                    />
+                                                    <div className="text-light small mt-1">{npc.title}</div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
+
                             </motion.div>
                         );
                     })}

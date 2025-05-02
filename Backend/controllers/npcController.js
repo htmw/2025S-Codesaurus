@@ -28,7 +28,8 @@ const saveNPC = async (req, res) => {
             description,
             backstory,
             stats: npcStats,  // Use the stats from the request or default stats
-            alignment: alignment || "Neutral"  // Default to "Neutral" if no alignment provided
+            alignment: alignment || "Neutral",  // Default to "Neutral" if no alignment provided
+            imageUrl: req.file?.location || null, // Use the uploaded image URL if available
         });
 
 
@@ -59,5 +60,33 @@ const getAllNPC = async (req, res) => {
 
 };
 
+// PUT route to update the image of an NPC
+const updateNPCImage = async (req, res) => {
+    try {
+        const npcId = req.params.npcId;
+        const imageUrl = req.file?.location;
 
-module.exports = { saveNPC, getAllNPC };
+        if (!imageUrl) {
+            return res.status(400).json({ message: "Image upload failed" });
+        }
+
+        const updatedNPC = await NPC.findByIdAndUpdate(
+            npcId,
+            { imageUrl },
+            { new: true }
+        );
+
+        if (!updatedNPC) {
+            return res.status(404).json({ message: "NPC not found" });
+        }
+
+        res.status(200).json({ message: "Image updated", npc: updatedNPC });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};
+
+
+
+
+module.exports = { saveNPC, getAllNPC, updateNPCImage };
