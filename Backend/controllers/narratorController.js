@@ -9,7 +9,8 @@ const PlayerAction = require("../models/PlayerAction");
 const { createCharacterInDB } = require("./characterController");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const MAX_ITERATIONS = 10;
+
+const MAX_ITERATIONS = 3;
 
 /**
  * AI Narrator Function - Generates AI narration based on past choices
@@ -20,7 +21,8 @@ const generateNarration = async ({
 	storyPrompt,
 	diceRollResult = null,
 	npcList = "",
-	requirements = []
+	requirements = [],
+	forceEnding = false
 }) => {
 	try {
 		const logs = await Log.find({ sessionId })
@@ -28,6 +30,7 @@ const generateNarration = async ({
 			.populate({
 				path: "userInput",
 			});
+		const logCount = await Log.countDocuments({ sessionId: sessionId });
 		const shouldForceEnd = logs.length >= MAX_ITERATIONS;
 		const previousChoices = logs
 			.filter(log => log.userInput || log.diceRollResult)
@@ -51,10 +54,6 @@ const generateNarration = async ({
 			background: character.background,
 			stats: character.stats
 		}));
-
-		const formattedInput = Array.isArray(playerChoices)
-			? playerChoices.map(p => `${p.characterId}: "${p.choice}"`).join(" | ")
-			: playerChoices;
 
 		const prompt = `
 You are an AI Dungeon Master for a fantasy text-based game.
@@ -158,6 +157,60 @@ ${JSON.stringify(previousChoices, null, 2)}
 		});
 
 		const content = response.choices[0].message.content;
+		let narrationObj = JSON.parse(content);
+
+		// Prevent dice roll on the 5th iteration
+		if (logCount >= MAX_ITERATIONS - 3) { // 0-based index, so 4 is the 5th turn
+			narrationObj.requiresRoll = false;
+			narrationObj.threshold = null;
+		}
+
+		let gameEnd = narrationObj["End of Game"];
+
+		console.log("Log Count: ", logCount);
+
+		if (gameEnd) {
+			const Endprompt = `
+You are an AI Dungeon Master for a fantasy text-based game.
+Respond ONLY in this JSON format:
+{
+  "requiresRoll": false,
+  "threshold": null,
+  "narration": "A conclusive ending statement that makes it clear the game is over and nothing remains for the player to do.",
+  "End of Game": true
+}
+
+Rules:
+- The game has now ended. Do NOT progress the story any further.
+- The narration must be a final, conclusive ending. Do NOT mention any new paths, choices, unresolved story elements, or anything that hints at further adventure, exploration, or action.
+- Do NOT end with a question or suggest further action.
+- Use language that makes it clear the adventure is over, such as "The adventure is complete," "Your journey ends here," "There is nothing left to do," or "The tale is finished."
+- Set "narration" to a positive, victorious, or peaceful ending, but it must sound like the absolute end.
+- Do NOT explain anything outside the JSON. No extra text.
+- Do NOT offer predefined choices.
+- ABSOLUTELY DO NOT introduce any new events, discoveries, or possibilities for the player. The story must feel completely finished and closed.
+
+NPCs present in the story: ${npcList}
+Story setup: "${storyPrompt}"
+Player choices so far:
+${JSON.stringify(previousChoices, null, 2)}
+`;
+			const endResponse = await openai.chat.completions.create({
+				model: "gpt-4",
+				messages: [
+					{ role: "system", content: "You are a fantasy narrator guiding players to end the game." },
+					{ role: "user", content: Endprompt }
+				],
+				max_tokens: 250,
+				temperature: 0.8,
+			});
+
+			const finalContent = JSON.parse(endResponse.choices[0].message.content);
+			finalContent.requiresRoll = false;
+			finalContent["End of Game"] = true;
+			return finalContent;
+		}
+
 		return JSON.parse(content);
 
 	} catch (error) {
@@ -283,26 +336,28 @@ const processNarration = async ({ session, playerChoices = null, diceRollResult 
 		? playerChoices.some(p => p.choice.toLowerCase().includes("escape"))
 		: false;
 
+	const logCount = await Log.countDocuments({ sessionId: session._id });
+
 	const narrationResponse = await generateNarration({
 		sessionId: session._id,
 		storyPrompt: story.prompt,
 		diceRollResult,
 		npcList,
-		requirements: story.requirements
+		requirements: story.requirements,
+		forceEnding: containsEscape || logCount >= MAX_ITERATIONS
 	});
 
 	session.storyState = narrationResponse.narration;
 	session.requiresRoll = narrationResponse.requiresRoll;
 	session.rollThreshold = narrationResponse.threshold;
 
-	const logCount = await Log.countDocuments({ sessionId: session._id });
-
 	if (narrationResponse["End of Game"] || containsEscape || logCount >= MAX_ITERATIONS) {
 		if (narrationResponse["End of Game"]) {
 			session.requirementsMet = true;
 		}
 		session.isCompleted = true;
-		session.endingState = `${narrationResponse.narration}`;
+		session.endingState = narrationResponse.narration;
+		session.storyState = session.endingState;
 	}
 
 	await session.save();
@@ -462,7 +517,6 @@ const getGameState = async (req, res) => {
 					path: "moves.characterId",
 				}
 			});
-		console.log('logs: ', JSON.stringify(logs, null, 2));
 
 		// Format logs cleanly for frontend
 		const formattedLogs = logs

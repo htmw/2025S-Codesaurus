@@ -149,9 +149,11 @@ function GameSessionPage() {
                 ]).flat().filter(msg => msg.text);
 
                 setMessages(formattedMessages);
-                setRequiresRoll(data.requiresRoll);
-                setIsCompleted(data.isCompleted);
-                setIsDisabled(data.isCompleted);
+                setIsCompleted(data.isCompleted); //Set game completion state
+                setIsDisabled(data.isCompleted); //Disable input if game is completed
+
+                // Ensure requiresRoll is false if game is completed
+                setRequiresRoll(data.isCompleted ? false : data.requiresRoll);
 
                 if (data.isCompleted) handleGameEnd(determineGameResult(data), data.storyState);
             }
@@ -207,9 +209,11 @@ function GameSessionPage() {
                 };
                 setMessages((prev) => [...prev, aiMessage]);
                 setNpcInScene(data.npcInScene || []);
-                setRequiresRoll(data.requiresRoll || false);
                 setIsCompleted(data.isCompleted);
                 setIsDisabled(data.isCompleted);
+
+                // Ensure requiresRoll is false if game is completed
+                setRequiresRoll(data.isCompleted ? false : (data.requiresRoll || false));
 
                 if (data.isCompleted) {
                     console.log(data.requirementsMet);
@@ -261,8 +265,10 @@ function GameSessionPage() {
                     { sender: "narrator", text: data.storyState }
                 ]);
                 setNpcInScene(data.npcInScene || []);
+
+                // Ensure requiresRoll is false if game is completed
                 setTimeout(() => {
-                    setRequiresRoll(data.requiresRoll);
+                    setRequiresRoll(data.isCompleted ? false : data.requiresRoll);
                 }, 4000);
 
                 if (data.isCompleted) {
