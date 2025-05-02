@@ -94,8 +94,6 @@ function GameSessionPage() {
         const successCount = parseInt(localStorage.getItem('successCount') || '0');
         const failureCount = parseInt(localStorage.getItem('failureCount') || '0');
 
-        console.log(message);
-
         if (message.toLowerCase().includes('success')) {
             localStorage.setItem('successCount', (successCount + 1).toString());
         } else if (message.toLowerCase().includes('failure')) {
@@ -141,7 +139,6 @@ function GameSessionPage() {
             if (response.ok) {
                 // Fetch logs separately
                 const logsData = data.logs || [];
-                console.log('logsData: ', logsData);
 
                 const formattedMessages = logsData.map((log) => [
                     { sender: "narrator", text: log.context, npcInScene: log.npcInScene },
@@ -216,7 +213,6 @@ function GameSessionPage() {
                 setRequiresRoll(data.isCompleted ? false : (data.requiresRoll || false));
 
                 if (data.isCompleted) {
-                    console.log(data.requirementsMet);
                     const endResult = determineGameResult(data);
                     handleGameEnd(endResult, data.storyState);
                 }
@@ -245,7 +241,6 @@ function GameSessionPage() {
             });
 
             const data = await response.json();
-            console.log(JSON.stringify(data));
 
             if (response.ok) {
                 setDiceValue(data.diceRoll); // Update dice face

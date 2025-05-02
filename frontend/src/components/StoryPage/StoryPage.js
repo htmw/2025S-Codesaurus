@@ -18,7 +18,6 @@ const StoryPage = () => {
             fetch(`${API_BASE_URL}/stories`)
                 .then((res) => res.json())
                 .then((data) => {
-                    console.log("Fetched stories:", data);
                     setStories(data); // test duplication
                 })
                 .catch((error) => console.error("Error fetching stories:", error));
