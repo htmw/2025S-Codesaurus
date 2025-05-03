@@ -165,8 +165,6 @@ ${JSON.stringify(previousChoices, null, 2)}
 			narrationObj.threshold = null;
 		}
 
-		console.log(`Total Logs: ${logCount}   ------------         Roll? ${narrationObj.requiresRoll}`);
-
 		let gameEnd = narrationObj["End of Game"] || logCount >= MAX_ITERATIONS || forceEnding;
 
 		if (gameEnd) {
@@ -376,8 +374,6 @@ const processNarration = async ({ session, playerChoices = null, diceRollResult 
 			: undefined,
 		npcInScene: narrationResponse.npcInScene || []
 	});
-
-	console.log("requires roll? ", narrationResponse.requiresRoll);
 
 	return {
 		storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
