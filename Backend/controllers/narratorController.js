@@ -10,7 +10,7 @@ const { createCharacterInDB } = require("./characterController");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const MAX_ITERATIONS = 3;
+const MAX_ITERATIONS = 5;
 
 /**
  * AI Narrator Function - Generates AI narration based on past choices
@@ -160,12 +160,14 @@ ${JSON.stringify(previousChoices, null, 2)}
 		let narrationObj = JSON.parse(content);
 
 		// Prevent dice roll on the 5th iteration
-		if (logCount >= MAX_ITERATIONS - 3) { // 0-based index, so 4 is the 5th turn
+		if (logCount >= MAX_ITERATIONS - 2) { // 0-based index, so 4 is the 5th turn
 			narrationObj.requiresRoll = false;
 			narrationObj.threshold = null;
 		}
 
-		let gameEnd = narrationObj["End of Game"];
+		console.log(`Total Logs: ${logCount}   ------------         Roll? ${narrationObj.requiresRoll}`);
+
+		let gameEnd = narrationObj["End of Game"] || logCount >= MAX_ITERATIONS || forceEnding;
 
 		if (gameEnd) {
 			const Endprompt = `
@@ -205,11 +207,10 @@ ${JSON.stringify(previousChoices, null, 2)}
 
 			const finalContent = JSON.parse(endResponse.choices[0].message.content);
 			finalContent.requiresRoll = false;
-			finalContent["End of Game"] = true;
 			return finalContent;
 		}
 
-		return JSON.parse(content);
+		return narrationObj;
 
 	} catch (error) {
 		console.error("OpenAI API error:", error);
@@ -375,6 +376,8 @@ const processNarration = async ({ session, playerChoices = null, diceRollResult 
 			: undefined,
 		npcInScene: narrationResponse.npcInScene || []
 	});
+
+	console.log("requires roll? ", narrationResponse.requiresRoll);
 
 	return {
 		storyState: session.isCompleted ? session.endingState : narrationResponse.narration,
