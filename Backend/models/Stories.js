@@ -12,7 +12,8 @@ const storySchema = new mongoose.Schema({
     duration: { type: Number, required: true, min: 5 }, // Approximate duration in minutes until the Story ends
     npcIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "NPC" }], // Links multiple NPCs to the story
     timestamp: { type: Date, default: Date.now }, // Time - created_at
-    requirements: { type: Array, default: [] }
+    requirements: { type: Array, default: [] },
+    maxPlayers: { type: Number, required: true, min: 1 }
 });
 
 module.exports = mongoose.model("Story", storySchema);

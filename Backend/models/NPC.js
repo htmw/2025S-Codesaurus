@@ -14,6 +14,7 @@ const npcSchema = new mongoose.Schema({
         agility: { type: Number, default: 2, min: 1, max: 10 }
     }, // Basic attributes to define NPC capabilities
     alignment: { type: String, enum: ["Good", "Neutral", "Evil"], default: "Neutral" }, // Moral alignment
+    imageUrl: { type: String }, // URL to an image representing the NPC
     timestamp: { type: Date, default: Date.now } // Time - created_at
 });
 

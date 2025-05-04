@@ -16,7 +16,6 @@ const ThemePage = () => {
     fetch(`${API_BASE_URL}/themes`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("Fetched themes:", data);
         setThemes(data);  // Set the fetched themes to state
       })
       .catch((error) => console.error("Error fetching themes:", error));
